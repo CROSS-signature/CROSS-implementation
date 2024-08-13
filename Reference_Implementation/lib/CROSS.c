@@ -210,6 +210,7 @@ void CROSS_sign(const prikey_t *SK,
         uint8_t csprng_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES+sizeof(uint16_t)];
         memcpy(csprng_input,rounds_seeds+SEED_LENGTH_BYTES*i,SEED_LENGTH_BYTES);
         memcpy(csprng_input+SEED_LENGTH_BYTES,sig->salt,SALT_LENGTH_BYTES);
+        /* i+c */
         uint16_t domain_sep_i = i+NUM_NODES_SEED_TREE;
         csprng_input[SALT_LENGTH_BYTES+SEED_LENGTH_BYTES] = (domain_sep_i >> 8) &0xFF;
         csprng_input[SALT_LENGTH_BYTES+SEED_LENGTH_BYTES+1] = domain_sep_i & 0xFF;
@@ -249,16 +250,19 @@ void CROSS_sign(const prikey_t *SK,
 #elif defined(RSDPG)
         pack_fz_rsdp_g_vec(cmt_0_i_input + DENSELY_PACKED_FQ_SYN_SIZE, delta[i]);
 #endif
-        /* Fixed endianness marshalling of round counter */
-        cmt_0_i_input[offset_round_idx] = (i >> 8) & 0xFF;
-        cmt_0_i_input[offset_round_idx+1] = i & 0xFF;
+        /* Fixed endianness marshalling of round counter
+         * i+c+dsc */
+        uint16_t domain_sep_idx_hash = domain_sep_i+HASH_CSPRNG_DOMAIN_SEP_CONST;
+        cmt_0_i_input[offset_round_idx] = (domain_sep_idx_hash >> 8) & 0xFF;
+        cmt_0_i_input[offset_round_idx+1] = domain_sep_idx_hash & 0xFF;
 
         hash(cmt_0[i],cmt_0_i_input,sizeof(cmt_0_i_input));
         memcpy(cmt_1_i_input,
                rounds_seeds+SEED_LENGTH_BYTES*i,
                SEED_LENGTH_BYTES);
-        cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES] = (i >> 8) &0xFF;
-        cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES+1] = i & 0xFF;
+        
+        cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES] = (domain_sep_idx_hash >> 8) &0xFF;
+        cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES+1] = domain_sep_idx_hash & 0xFF;
         hash(cmt_1[i],cmt_1_i_input,sizeof(cmt_1_i_input));
     }
 
@@ -415,12 +419,18 @@ int CROSS_verify(const pubkey_t *const PK,
     int is_signature_ok = 1;
     for(uint16_t i = 0; i< T; i++){
 
+        /* i+c */
+        uint16_t domain_sep_i = i+NUM_NODES_SEED_TREE;
+        /* i+c+dsc */
+        uint16_t domain_sep_idx_hash = domain_sep_i+HASH_CSPRNG_DOMAIN_SEP_CONST;
+
         if(fixed_weight_b[i] == 1){
             memcpy(cmt_1_i_input,
                    rounds_seeds+SEED_LENGTH_BYTES*i,
                    SEED_LENGTH_BYTES);
-            cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES] = (i >> 8) &0xFF;
-            cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES+1] = i & 0xFF;
+
+            cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES] = (domain_sep_idx_hash >> 8) &0xFF;
+            cmt_1_i_input[SEED_LENGTH_BYTES+SALT_LENGTH_BYTES+1] = domain_sep_idx_hash & 0xFF;
             hash(cmt_1[i],cmt_1_i_input,sizeof(cmt_1_i_input));
 
             /* CSPRNG is fed with concat(seed,salt,round index) represented
@@ -429,7 +439,6 @@ int CROSS_verify(const pubkey_t *const PK,
             uint8_t csprng_input[csprng_input_length];
             memcpy(csprng_input+SEED_LENGTH_BYTES,sig->salt,SALT_LENGTH_BYTES);
             memcpy(csprng_input,rounds_seeds+SEED_LENGTH_BYTES*i,SEED_LENGTH_BYTES);
-            uint16_t domain_sep_i = i+NUM_NODES_SEED_TREE;
             csprng_input[SALT_LENGTH_BYTES+SEED_LENGTH_BYTES] = (domain_sep_i >> 8) &0xFF;
             csprng_input[SALT_LENGTH_BYTES+SEED_LENGTH_BYTES+1] = domain_sep_i & 0xFF;
 
@@ -493,8 +502,8 @@ int CROSS_verify(const pubkey_t *const PK,
                                         pub_syn);
             fq_dz_norm_synd(to_compress);
             pack_fq_syn(cmt_0_i_input,to_compress);
-            cmt_0_i_input[offset_round_idx] = (i >> 8) &0xFF;
-            cmt_0_i_input[offset_round_idx+1] = i & 0xFF;
+            cmt_0_i_input[offset_round_idx] = (domain_sep_idx_hash >> 8) & 0xFF;
+            cmt_0_i_input[offset_round_idx+1] = domain_sep_idx_hash & 0xFF;
 
             hash(cmt_0[i], cmt_0_i_input, sizeof(cmt_0_i_input));
         }

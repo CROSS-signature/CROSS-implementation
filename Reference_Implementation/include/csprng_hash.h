@@ -122,7 +122,7 @@ void CSPRNG_fq_vec(FQ_ELEM res[N],
     while(placed < N){
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32; 
@@ -161,14 +161,14 @@ void CSPRNG_fq_vec_beta(FQ_ELEM res[T],
     while(placed < T){
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32; 
         }
         /* draw from 0 ... Q-2, then add 1*/
         res[placed] = (sub_buffer & mask)+1;
-        if(res[placed] < Q-1) {
+        if(res[placed] < Q) {
            placed++;
            sub_buffer = sub_buffer >> BITS_FOR_Q_M_ONE;
            bits_in_sub_buf -= BITS_FOR_Q_M_ONE;
@@ -198,7 +198,7 @@ void CSPRNG_fq_mat(FQ_ELEM res[K][N-K],
     while(placed < K*(N-K)){
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32; 
@@ -236,7 +236,7 @@ void CSPRNG_zz_vec(FZ_ELEM res[N],
     while(placed < N){
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32; 
@@ -274,7 +274,7 @@ void CSPRNG_zz_inf_w(FZ_ELEM res[M],
     while(placed < M){
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32;             
@@ -311,7 +311,7 @@ void CSPRNG_fz_mat(FZ_ELEM res[M][N-M],
     while(placed < M*(N-M)){
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32;             

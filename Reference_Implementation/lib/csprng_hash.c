@@ -53,7 +53,7 @@ void expand_digest_to_fixed_weight(uint8_t fixed_weight_string[T],
         /* refill randomness buffer if needed */
         if(bits_in_sub_buf <= 32){
             /* get 32 fresh bits from main buffer with a single load */
-            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            uint32_t refresh_buf = *(uint32_t*) (CSPRNG_buffer+pos_in_buf);
             pos_in_buf += 4;
             sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
             bits_in_sub_buf += 32; 
