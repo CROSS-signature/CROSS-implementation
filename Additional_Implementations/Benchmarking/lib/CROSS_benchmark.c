@@ -33,7 +33,7 @@
 #include "csprng_hash.h"
 
 
-#define NUM_TESTS 10
+#define NUM_TESTS 1000
 
 void microbench(){
     welford_t timer;
@@ -67,7 +67,7 @@ void CROSS_sign_verify_speed(int print_tex){
     pubkey_t pk;
     prikey_t sk;
     sig_t signature;
-    char message[8] = "Signme!";
+    char message[32] = "Signme!!Signme!!Signme!!Signme!";
 
     welford_t timer_KG,timer_Sig,timer_Ver;
     welford_init(&timer_KG);
@@ -89,7 +89,7 @@ void CROSS_sign_verify_speed(int print_tex){
         cycles = x86_64_rtdsc();
         int is_signature_ok = CROSS_verify(&pk,message,8,&signature);
         welford_update(&timer_Ver,(x86_64_rtdsc()-cycles)/1000.0);
-        is_signature_still_ok = is_signature_ok || is_signature_still_ok;
+        is_signature_still_ok = is_signature_ok && is_signature_still_ok;
     }
     if(print_tex){
       /* print a convenient machine extractable table row pair */
@@ -113,6 +113,8 @@ void CROSS_sign_verify_speed(int print_tex){
 #endif
 #if defined(SIG_SIZE)
       printf("Size  & ");
+#elif defined(BALANCED)
+      printf("Balan & ");      
 #elif defined(SPEED)
       printf("Speed & ");
 #endif
@@ -162,7 +164,6 @@ void CROSS_sign_verify_speed(int print_tex){
     }
 }
 
-int iteration = 0;
 
 int main(int argc, char* argv[]){
     initialize_csprng(&platform_csprng_state,

@@ -53,11 +53,11 @@ void   fprintBstr(FILE *fp, char *S, unsigned char *A, unsigned long long L);
 char    AlgName[] = "CROSS";
 
 int main() {
-    char                fn_req[32], fn_rsp[32];
+    char                fn_req[32] = {0}, fn_rsp[32] = {0};
     FILE                *fp_req, *fp_rsp;
-    unsigned char       seed[48];
-    unsigned char       msg[3300];
-    unsigned char       entropy_input[48];
+    unsigned char       seed[48] = {0};
+    unsigned char       msg[3300] = {0};
+    unsigned char       entropy_input[48] = {0};
     unsigned char       *m, *sm, *m1;
     unsigned long long  mlen, smlen, mlen1;
     int                 count;
@@ -77,12 +77,14 @@ int main() {
         return KAT_FILE_OPEN_ERROR;
     }
 
-    for (int i=0; i<48; i++)
+    for (int i=0; i<48; i++) {
         entropy_input[i] = i;
-
+    }
+    
     initialize_csprng(&platform_csprng_state, (const unsigned char *)entropy_input,48);
 
     KAT_NIST_randombytes_init(entropy_input, NULL, 256);
+    
     for (int i=0; i<100; i++) {
         fprintf(fp_req, "count = %d\n", i);
         KAT_NIST_randombytes(seed, 48);

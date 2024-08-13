@@ -89,20 +89,20 @@ int is_zz_vec_in_restr_group(const FZ_ELEM in[N]){
 
 #if defined(RSDPG)
 /* computes the information word * M_G product to obtain an element of G
- * only non systematic portion of M_G = [I W] is used, transposed to improve
+ * only non systematic portion of M_G = [W I] is used, transposed to improve
  * cache friendliness */
 static
 void fz_inf_w_by_fz_matrix(FZ_ELEM res[N],
                            const FZ_ELEM e[M],
-                           FZ_ELEM W_tr[N-M][M]){
+                           FZ_ELEM W_mat[M][N-M]){
 
-    memcpy(res,e,M*sizeof(FZ_ELEM));
-    memset(res+M,0,(N-M)*sizeof(FZ_ELEM));
-    for(int i = M; i < N; i++){
-        for(int j = 0; j < M; j++){
-               res[i] = FZRED_DOUBLE( (FZ_DOUBLEPREC) res[i] +
-                                      (FZ_DOUBLEPREC) e[i-M] *
-                                      (FZ_DOUBLEPREC) W_tr[i-M][j]);
+    memset(res,0,(N-M)*sizeof(FZ_ELEM));
+    memcpy(res+(N-M),e,M*sizeof(FZ_ELEM));
+    for(int i = 0; i < M; i++){
+        for(int j = 0; j < N-M; j++){
+               res[j] = FZRED_DOUBLE( (FZ_DOUBLEPREC) res[j] +
+                                      (FZ_DOUBLEPREC) e[i] *
+                                      (FZ_DOUBLEPREC) W_mat[i][j]);
         }
     }
 }

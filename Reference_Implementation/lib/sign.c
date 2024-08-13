@@ -33,7 +33,7 @@ int crypto_sign_keypair(unsigned char *pk,
 {
    /* keygen cannot fail */
    CROSS_keygen((prikey_t *) sk,
-               (pubkey_t *) pk);
+                (pubkey_t *) pk);
 
    return 0; // NIST convention: 0 == zero errors
 } // end crypto_sign_keypair
@@ -48,12 +48,9 @@ int crypto_sign(unsigned char *sm,
                 const unsigned char *m, unsigned long long mlen,  // in parameter
                 const unsigned char *sk)                          // in parameter
 {
-
-
    /* sign cannot fail */
-   memcpy((unsigned char *) sm, (const unsigned char *) m, (size_t) mlen);
-   CROSS_sign((const prikey_t *)
-             sk,                                // in parameter
+   memcpy(sm, m, mlen);
+   CROSS_sign((const prikey_t *) sk,                               // in parameter
              (const char *const) m, (const uint64_t) mlen,         // in parameter
              (sig_t *) (sm+mlen));                                 // out parameter
    *smlen = mlen + (unsigned long long) sizeof(sig_t);
@@ -74,6 +71,7 @@ int crypto_sign_open(unsigned char *m,
 
    /* verify returns 1 if signature is ok, 0 otherwise */
    *mlen = smlen-(unsigned long long) sizeof(sig_t);
+   
    memcpy((unsigned char *) m, (const unsigned char *) sm, (size_t) *mlen);
    int ok = CROSS_verify((const pubkey_t *const)
                         pk,                     // in parameter

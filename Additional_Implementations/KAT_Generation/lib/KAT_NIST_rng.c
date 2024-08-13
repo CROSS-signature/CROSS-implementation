@@ -159,7 +159,7 @@ void KAT_NIST_AES256_ECB(unsigned char *key,
 void KAT_NIST_randombytes_init(unsigned char *entropy_input,
                           unsigned char *personalization_string,
                           int security_strength) {
-    unsigned char   seed_material[48];
+    unsigned char   seed_material[48] = {0};
     
     memcpy(seed_material, entropy_input, 48);
     if (personalization_string)

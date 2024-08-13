@@ -41,7 +41,7 @@
 
 #endif
 
-/* Set of GCC/LLVM macros set by the -march=haswell and more recent CPUs 
+/* Set of GCC/LLVM macros set by the -march=haswell and more recent CPUs
  * these ISA extensions are present in all haswell and newer CPUs from Intel
  * with haswell being the target microarchitecture for NIST benchmarks    */
 #if defined(HIGH_COMPATIBILITY_X86_64)            && \
@@ -51,3 +51,6 @@
 #define HIGH_PERFORMANCE_X86_64
 #include <pmmintrin.h>
 #endif
+
+#define EPI8_PER_REG 32
+#define EPI16_PER_REG 16

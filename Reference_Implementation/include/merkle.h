@@ -26,7 +26,7 @@
 #include "csprng_hash.h"
 
 /***********************************************************************************************/
-void generate_merkle_tree(unsigned char merkle_tree[NUM_NODES_OF_MERKLE_TREE * HASH_DIGEST_LENGTH],
+void generate_merkle_tree(unsigned char merkle_tree[NUM_NODES_MERKLE_TREE * HASH_DIGEST_LENGTH],
                          unsigned char commitments[T][HASH_DIGEST_LENGTH]);
 
 /***********************************************************************************************/
@@ -35,7 +35,7 @@ void generate_merkle_proof(uint16_t merkle_proof_indices[TREE_NODES_TO_STORE],
                             const unsigned char challenge[T]);
 
 /***********************************************************************************************/
-void rebuild_merkle_tree(unsigned char merkle_tree[NUM_NODES_OF_MERKLE_TREE * HASH_DIGEST_LENGTH],
+void rebuild_merkle_tree(unsigned char merkle_tree[NUM_NODES_MERKLE_TREE * HASH_DIGEST_LENGTH],
                             const unsigned char merkle_proof[TREE_NODES_TO_STORE * HASH_DIGEST_LENGTH],
                             unsigned char leaves[T][HASH_DIGEST_LENGTH],
                             const unsigned char challenge[T]);

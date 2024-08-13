@@ -23,63 +23,57 @@
  *
  **/
 
+#include <string.h>
 #include "csprng_hash.h"
-
-/******************************************************************************/
-/* Initializes a CSPRNG from either an input seed or the output of
- * clock_gettime. Input seed assumed to be a C convention string */
-
 CSPRNG_STATE_T platform_csprng_state;
 
-void sha3_hash(uint8_t digest[HASH_DIGEST_LENGTH],
-               const unsigned char *const m,
-               const uint64_t mlen)
-{
-#if (HASH_DIGEST_LENGTH*8 == 256)
-   sha3_256(digest,m, mlen);
-#elif (HASH_DIGEST_LENGTH*8 == 384)
-   sha3_384(digest,m, mlen);
-#elif (HASH_DIGEST_LENGTH*8 == 512)
-   sha3_512(digest,m, mlen);
-#else
-#error digest length unsupported by SHA-3
-#endif
-} /* end compute_digest */
-
-void sha2_hash(uint8_t digest[HASH_DIGEST_LENGTH],
-               const unsigned char *const m,
-               const uint64_t mlen)
-{
-#if (HASH_DIGEST_LENGTH*8 == 256)
-   sha2_256(digest,m, mlen);
-#elif (HASH_DIGEST_LENGTH*8 == 384)
-   sha2_384(digest,m, mlen);
-#elif (HASH_DIGEST_LENGTH*8 == 512)
-   sha2_512(digest,m, mlen);
-#else
-#error digest length unsupported by SHA-2
-#endif
-} /* end compute_digest */
-
 #define  POSITION_MASK (( (uint16_t)1 << BITS_TO_REPRESENT(T-1))-1)
+
+/* Fisher-Yates shuffle obtaining the entire required randomness in a single 
+ * call */
 void expand_digest_to_fixed_weight(uint8_t fixed_weight_string[T],
                                    const uint8_t digest[HASH_DIGEST_LENGTH]){
    CSPRNG_STATE_T csprng_state;
    initialize_csprng(&csprng_state,
                      (const unsigned char *) digest,
                      HASH_DIGEST_LENGTH);
-   uint16_t rnd_buf;
-   int placed_elements = 0;
-   while (placed_elements < T-W) {
-      POSITION_IN_FW_STRING_T pos;
-      do {
-         csprng_randombytes((unsigned char *) &rnd_buf,
-                             sizeof(uint16_t),
-                             &csprng_state);
-         pos   = rnd_buf & POSITION_MASK;
-      } while ( (  pos >= T) ||             /* rejection sampling */
-                (fixed_weight_string[pos] != 0) ); /* skip elements already placed */
-      fixed_weight_string[pos] = 1;
-      placed_elements += 1;
-   }
+   uint8_t CSPRNG_buffer[ROUND_UP(BITS_CWSTR_RNG,8)/8];
+   csprng_randombytes(CSPRNG_buffer,ROUND_UP(BITS_CWSTR_RNG,8)/8,&csprng_state);
+   
+   /* initialize CW string */
+   memset(fixed_weight_string,1,W);
+   memset(fixed_weight_string+W,0,T-W);
+
+   uint64_t sub_buffer = *(uint64_t*)CSPRNG_buffer;
+   int bits_in_sub_buf = 64;
+   int pos_in_buf = 8;
+   
+   int curr = 0;
+   while(curr < T){
+        /* refill randomness buffer if needed */
+        if(bits_in_sub_buf <= 32){
+            /* get 32 fresh bits from main buffer with a single load */
+            uint32_t refresh_buf = *(uint32_t*) CSPRNG_buffer+pos_in_buf;
+            pos_in_buf += 4;
+            sub_buffer |=  ((uint64_t) refresh_buf) << bits_in_sub_buf;
+            bits_in_sub_buf += 32; 
+        }      
+        /*we need to draw a number in 0... T-1-curr */
+        int bits_for_pos = BITS_TO_REPRESENT(T-1-curr);
+        uint64_t pos_mask = ( (uint64_t) 1 <<  bits_for_pos) - 1;
+        uint16_t candidate_pos = (sub_buffer & pos_mask);
+        if(candidate_pos < T-curr){
+           int dest = curr+candidate_pos;
+           /* the position is admissible, swap */
+           uint8_t tmp = fixed_weight_string[curr]; 
+           fixed_weight_string[curr] = fixed_weight_string[dest];
+           fixed_weight_string[dest] = tmp;
+           curr++;
+           sub_buffer = sub_buffer >> bits_for_pos;
+           bits_in_sub_buf -= bits_for_pos;      
+        } else {
+           sub_buffer = sub_buffer >> 1;
+           bits_in_sub_buf -= 1;           
+        }
+   }  
 } /* expand_digest_to_fixed_weight */

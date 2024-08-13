@@ -51,6 +51,7 @@
  * [1, 16, 256, 384, 355, 302, 93, 505]
  * the following is a precomputed-squares S&M, to be optimized into muxed
  * register stored tables */
+
 #define RESTR_G_GEN_1  ((FQ_ELEM)RESTR_G_GEN)
 #define RESTR_G_GEN_2  ((FQ_ELEM) 256)
 #define RESTR_G_GEN_4  ((FQ_ELEM) 384)
@@ -99,22 +100,22 @@ void fq_dz_norm(FQ_ELEM v[N]){
     }
 }
 /* computes the product e*H of an n-element restricted vector by a (n-k)*n
- * F_q H is in systematic form. Only the non systematic portion of H =[I V],
+ * F_q H is in systematic form. Only the non systematic portion of H =[V I],
  * V, is provided, transposed, hence linearized by columns so that syndrome
  * computation is vectorizable. */
 
 static
 void restr_vec_by_fq_matrix(FQ_ELEM res[N-K],
                             FZ_ELEM e[N],
-                            FQ_ELEM V_tr[N-K][K]){
-    for (int i = 0 ;i < N-K; i++){
-       res[i] = RESTR_TO_VAL(e[i]);
+                            FQ_ELEM V_tr[K][N-K]){
+    for (int i = K ;i < N; i++){
+       res[i-K] = RESTR_TO_VAL(e[i]);
     }
-    for(int i = N-K; i < N; i++){
+    for(int i = 0; i < K; i++){
        for(int j = 0; j < N-K; j++){
            res[j] = FQRED_DOUBLE( (FQ_DOUBLEPREC) res[j] +
                                   (FQ_DOUBLEPREC) RESTR_TO_VAL(e[i]) *
-                                  (FQ_DOUBLEPREC) V_tr[j][i-(N-K)]);
+                                  (FQ_DOUBLEPREC) V_tr[i][j]);
        }
     }
 }
@@ -122,13 +123,13 @@ void restr_vec_by_fq_matrix(FQ_ELEM res[N-K],
 static
 void fq_vec_by_fq_matrix(FQ_ELEM res[N-K],
                          FQ_ELEM e[N],
-                         FQ_ELEM V_tr[N-K][K]){
-    memcpy(res,e,(N-K)*sizeof(FQ_ELEM));
-    for(int i = N-K; i < N; i++){
+                         FQ_ELEM V_tr[K][N-K]){
+    memcpy(res,e+K,(N-K)*sizeof(FQ_ELEM));
+    for(int i = 0; i < K; i++){
        for(int j = 0; j < N-K; j++){
-           res[j] = FQRED_DOUBLE( (FQ_DOUBLEPREC)res[j] +
+           res[j] = FQRED_DOUBLE( (FQ_DOUBLEPREC) res[j] +
                                   (FQ_DOUBLEPREC) e[i] *
-                                  (FQ_DOUBLEPREC) V_tr[j][i-(N-K)]);
+                                  (FQ_DOUBLEPREC) V_tr[i][j]);
        }
     }
 }

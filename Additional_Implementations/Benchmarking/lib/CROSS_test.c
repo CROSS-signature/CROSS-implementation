@@ -28,11 +28,12 @@
 #include <time.h>
 #include "timing_and_stat.h"
 
-#define NUM_TEST_ITERATIONS 1
-
+#define NUM_TEST_ITERATIONS 100
+#include "csprng_hash.h"
+#include "fq_arith.h"
 #include "arith_unit_tests.h"
 #include "CROSS.h"
-#include "csprng_hash.h"
+#include "api.h"
 
 
 void info(void){
@@ -63,6 +64,37 @@ int CROSS_sign_verify_test(){
     return is_signature_ok;
 }
 
+
+#define NIST_API_TEST_MESSAGE_LEN 3300
+int CROSS_NIST_API_test(){
+    unsigned char pk[CRYPTO_PUBLICKEYBYTES] = {0};
+    unsigned char sk[CRYPTO_SECRETKEYBYTES] = {0};  
+
+    unsigned long long mlen = NIST_API_TEST_MESSAGE_LEN;
+    unsigned char message[NIST_API_TEST_MESSAGE_LEN];
+    /* soft randomized message */
+    srand(time(NULL));
+    for (int i=0;i< NIST_API_TEST_MESSAGE_LEN; i++) message[i] = rand();
+
+    unsigned long long smlen = NIST_API_TEST_MESSAGE_LEN+CRYPTO_BYTES;
+    unsigned char signed_message[NIST_API_TEST_MESSAGE_LEN+CRYPTO_BYTES];
+
+    memset(signed_message,0,smlen);
+    
+    int are_there_problems = 0;
+    are_there_problems |= crypto_sign_keypair(pk,sk);
+    are_there_problems |= crypto_sign(signed_message,&smlen,
+                                      message,mlen,
+                                      sk);
+    are_there_problems |= crypto_sign_open(message,
+                                           &mlen,
+                                           signed_message,
+                                           smlen,
+                                           pk);      
+    return !are_there_problems;
+}
+
+
 int main(int argc, char* argv[]){
     initialize_csprng(&platform_csprng_state,
                       (const unsigned char *)"012345678912345",
@@ -80,6 +112,8 @@ int main(int argc, char* argv[]){
         fprintf(stderr,"Sig_invariant %d\n",iteration_ok);
         iteration_ok = iteration_ok && CROSS_sign_verify_test();
         fprintf(stderr,"Full %d\n",iteration_ok);
+        iteration_ok = iteration_ok && CROSS_NIST_API_test();
+        fprintf(stderr,"NIST API %d\n",iteration_ok);
         tests_ok += iteration_ok;
     }
     fprintf(stderr,"\n%d tests functional out of %d\n",tests_ok,NUM_TEST_ITERATIONS);

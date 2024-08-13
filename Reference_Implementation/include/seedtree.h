@@ -28,10 +28,22 @@
 #include "parameters.h"
 #include "csprng_hash.h"
 
+#if defined(NO_TREES)
+int compute_round_seeds(unsigned char rounds_seeds[T*SEED_LENGTH_BYTES],
+                  const unsigned char root_seed[SEED_LENGTH_BYTES],
+                  const unsigned char salt[SALT_LENGTH_BYTES]);
+
+int publish_round_seeds(unsigned char *seed_storage,
+                  const unsigned char rounds_seeds[T*SEED_LENGTH_BYTES],
+                  const unsigned char indices_to_publish[T]);
+
+int regenerate_round_seeds(unsigned char rounds_seeds[T*SEED_LENGTH_BYTES],                           
+                           const unsigned char indices_to_publish[T],
+                           const unsigned char *seed_storage);
+#else
 /******************************************************************************/
 void generate_seed_tree_from_root(unsigned char
-                                  seed_tree[NUM_NODES_OF_SEED_TREE *
-                                                               SEED_LENGTH_BYTES],
+                                  seed_tree[NUM_NODES_SEED_TREE * SEED_LENGTH_BYTES],
                                   const unsigned char root_seed[SEED_LENGTH_BYTES],
                                   const unsigned char salt[SALT_LENGTH_BYTES]) ;
 
@@ -39,14 +51,19 @@ void generate_seed_tree_from_root(unsigned char
 /* returns the number of seeds which have been published */
 int publish_seeds(unsigned char *seed_storage,
                   const unsigned char
-                  seed_tree[NUM_NODES_OF_SEED_TREE*SEED_LENGTH_BYTES],
+                  seed_tree[NUM_NODES_SEED_TREE*SEED_LENGTH_BYTES],
                   // binary array denoting if node has to be released (cell == 0) or not
                   const unsigned char indices_to_publish[T]);
 
 /******************************************************************************/
 /* returns the number of seeds which have been used to regenerate the tree */
-int regenerate_leaves(unsigned char
-                      seed_tree[NUM_NODES_OF_SEED_TREE*SEED_LENGTH_BYTES],
+int regenerate_round_seeds(unsigned char
+                      seed_tree[NUM_NODES_SEED_TREE*SEED_LENGTH_BYTES],
                       const unsigned char indices_to_publish[T],
                       const unsigned char *stored_seeds,
                       const unsigned char salt[SALT_LENGTH_BYTES]);   // input
+
+void pseed(unsigned char seed[SEED_LENGTH_BYTES]);
+void ptree(unsigned char seed_tree[NUM_NODES_SEED_TREE * SEED_LENGTH_BYTES]);
+
+#endif
