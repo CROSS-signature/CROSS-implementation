@@ -2,11 +2,17 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 1.1 (March 2023)
+ * @version 2.0 (February 2025)
  *
- * @author Alessandro Barenghi <alessandro.barenghi@polimi.it>
- * @author Gerardo Pelosi <gerardo.pelosi@polimi.it>
- *
+ * Authors listed in alphabetical order:
+ * 
+ * @author: Alessandro Barenghi <alessandro.barenghi@polimi.it>
+ * @author: Marco Gianvecchio <marco.gianvecchio@mail.polimi.it>
+ * @author: Patrick Karl <patrick.karl@tum.de>
+ * @author: Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @author: Jonas Schupp <jonas.schupp@tum.de>
+ * 
+ * 
  * This code is hereby placed in the public domain.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
@@ -22,6 +28,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +37,7 @@
 
 #define NUM_TEST_ITERATIONS 100
 #include "csprng_hash.h"
-#include "fq_arith.h"
+#include "fp_arith.h"
 #include "arith_unit_tests.h"
 #include "CROSS.h"
 #include "api.h"
@@ -43,19 +50,19 @@ void info(void){
 #elif defined(RSDPG)
     fprintf(stderr,"RSDPG Variant\n");
 #endif
-    fprintf(stderr,"Code parameters: n= %d, k= %d, q=%d\n", N,K,Q);
+    fprintf(stderr,"Code parameters: n= %d, k= %d, p=%d\n", N,K,P);
     fprintf(stderr,"restriction size: z=%d\n",Z);
     fprintf(stderr,"Fixed weight challenge vector: %d rounds, weight %d \n",T,W);
-    fprintf(stderr,"Private key: %luB\n", sizeof(prikey_t));
-    fprintf(stderr,"Public key %luB\n", sizeof(pubkey_t));
-    fprintf(stderr,"Signature: %luB\n", sizeof(sig_t));
+    fprintf(stderr,"Private key: %luB\n", sizeof(sk_t));
+    fprintf(stderr,"Public key %luB\n", sizeof(pk_t));
+    fprintf(stderr,"Signature: %luB\n", sizeof(CROSS_sig_t));
 }
 
 /* returns 1 if the test is successful, 0 otherwise */
 int CROSS_sign_verify_test(){
-    pubkey_t pk;
-    prikey_t sk;
-    sig_t signature;
+    pk_t pk;
+    sk_t sk;
+    CROSS_sig_t signature;
     char message[8] = "Signme!";
     CROSS_keygen(&sk,&pk);
     CROSS_sign(&sk,message,8,&signature);
@@ -96,15 +103,16 @@ int CROSS_NIST_API_test(){
 
 
 int main(int argc, char* argv[]){
-    initialize_csprng(&platform_csprng_state,
+    csprng_initialize(&platform_csprng_state,
                       (const unsigned char *)"012345678912345",
-                      16);
+                      16,
+                      0);
     fprintf(stderr,"CROSS reference implementation functional testbench\n");
     info();
     int tests_ok = 0;
     for (int i = 0; i < NUM_TEST_ITERATIONS; i++) {
         int iteration_ok = 1;
-        iteration_ok = iteration_ok && fq_arith_testing();
+        iteration_ok = iteration_ok && fp_arith_testing();
         fprintf(stderr,"Arith %d\n",iteration_ok);
         iteration_ok = iteration_ok && restr_belonging_test();
         fprintf(stderr,"Restr %d\n",iteration_ok);

@@ -2,11 +2,17 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 1.1 (March 2023)
+ * @version 2.0 (February 2025)
  *
- * @author Alessandro Barenghi <alessandro.barenghi@polimi.it>
- * @author Gerardo Pelosi <gerardo.pelosi@polimi.it>
- *
+ * Authors listed in alphabetical order:
+ * 
+ * @author: Alessandro Barenghi <alessandro.barenghi@polimi.it>
+ * @author: Marco Gianvecchio <marco.gianvecchio@mail.polimi.it>
+ * @author: Patrick Karl <patrick.karl@tum.de>
+ * @author: Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @author: Jonas Schupp <jonas.schupp@tum.de>
+ * 
+ * 
  * This code is hereby placed in the public domain.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
@@ -26,19 +32,19 @@
 
 #pragma once
 
-#include "parameters.h"
 #include "CROSS.h"
+#include "parameters.h"
 
 #define CRYPTO_ALGNAME "CROSS"
 
 /*  no. of bytes of the secret key */
-#define CRYPTO_SECRETKEYBYTES (sizeof(prikey_t))
+#define CRYPTO_SECRETKEYBYTES (sizeof(sk_t))
 
 /*  no. of bytes of the public key */
-#define CRYPTO_PUBLICKEYBYTES (sizeof(pubkey_t))
+#define CRYPTO_PUBLICKEYBYTES (sizeof(pk_t))
 
 /* no. of bytes of overhead in a signed message */
-#define CRYPTO_BYTES (sizeof(sig_t))
+#define CRYPTO_BYTES (sizeof(CROSS_sig_t))
 
 /* required bytes of input randomness */
 #define  CRYPTO_RANDOMBYTES (SEED_LENGTH_BYTES) //CROSS library -  parameters.h

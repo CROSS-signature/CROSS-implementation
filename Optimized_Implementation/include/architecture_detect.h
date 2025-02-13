@@ -1,11 +1,18 @@
 /**
- * Optimized ISO-C11 Implementation of CROSS.
  *
- * @version 1.1 (March 2023)
+ * Reference ISO-C11 Implementation of CROSS.
  *
- * @author Alessandro Barenghi <alessandro.barenghi@polimi.it>
- * @author Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @version 2.0 (February 2025)
  *
+ * Authors listed in alphabetical order:
+ * 
+ * @author: Alessandro Barenghi <alessandro.barenghi@polimi.it>
+ * @author: Marco Gianvecchio <marco.gianvecchio@mail.polimi.it>
+ * @author: Patrick Karl <patrick.karl@tum.de>
+ * @author: Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @author: Jonas Schupp <jonas.schupp@tum.de>
+ * 
+ * 
  * This code is hereby placed in the public domain.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
@@ -54,3 +61,4 @@
 
 #define EPI8_PER_REG 32
 #define EPI16_PER_REG 16
+#define EPI32_PER_REG 8

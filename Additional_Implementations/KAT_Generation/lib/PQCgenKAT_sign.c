@@ -81,7 +81,7 @@ int main() {
         entropy_input[i] = i;
     }
     
-    initialize_csprng(&platform_csprng_state, (const unsigned char *)entropy_input,48);
+    csprng_initialize(&platform_csprng_state, (const unsigned char *)entropy_input, 48, CSPRNG_DOMAIN_SEP_CONST);
 
     KAT_NIST_randombytes_init(entropy_input, NULL, 256);
     

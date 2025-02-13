@@ -2,11 +2,17 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 1.1 (March 2023)
+ * @version 2.0 (February 2025)
  *
- * @author Alessandro Barenghi <alessandro.barenghi@polimi.it>
- * @author Gerardo Pelosi <gerardo.pelosi@polimi.it>
- *
+ * Authors listed in alphabetical order:
+ * 
+ * @author: Alessandro Barenghi <alessandro.barenghi@polimi.it>
+ * @author: Marco Gianvecchio <marco.gianvecchio@mail.polimi.it>
+ * @author: Patrick Karl <patrick.karl@tum.de>
+ * @author: Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @author: Jonas Schupp <jonas.schupp@tum.de>
+ * 
+ * 
  * This code is hereby placed in the public domain.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
@@ -32,28 +38,28 @@
 #if defined(RSDP)
 
 /* The same base field and restriction are employed for all categories of RSDP */
-#define   Q (127)
+#define   P (127)
 #define   Z (  7)
 /* single-register table representation of E, the value of g^7=1 is also
  * represented to avoid exponent renormalization*/
 #define RESTR_G_TABLE ((uint64_t) (0x0140201008040201))
 #define RESTR_G_GEN 2
-#define FQ_ELEM uint8_t
+#define FP_ELEM uint8_t
 #define FZ_ELEM uint8_t
-#define FQ_DOUBLEPREC uint16_t
-#define FQ_TRIPLEPREC uint32_t
+#define FP_DOUBLEPREC uint16_t
+#define FP_TRIPLEPREC uint32_t
 #elif defined(RSDPG)
 
 /* The same base field and restriction are employed for all categories of RSDP */
-#define   Q (509)
+#define   P (509)
 #define   Z (127)
 /* Restricted subgroup generator */
 #define RESTR_G_GEN 16
 #define FZ_ELEM uint8_t
 #define FZ_DOUBLEPREC uint16_t
-#define FQ_ELEM uint16_t
-#define FQ_DOUBLEPREC uint32_t
-#define FQ_TRIPLEPREC uint32_t
+#define FP_ELEM uint16_t
+#define FP_DOUBLEPREC uint32_t
+#define FP_TRIPLEPREC uint32_t
 
 #else
 #error define either RSDP or RSDPG
@@ -70,16 +76,16 @@
 #define   K ( 76)
 
 #if defined(SPEED)
-#define   T (163)
-#define   W ( 85)
+#define   T (157)
+#define   W ( 82)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(BALANCED)
-#define   T (252)
-#define   W (212)
+#define   T (256)
+#define   W (215)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(SIG_SIZE)
-#define   T (960)
-#define   W (938)
+#define   T (520)
+#define   W (488)
 #define POSITION_IN_FW_STRING_T uint16_t
 
 #else
@@ -93,16 +99,16 @@
 #define   K (111)
 
 #if defined(SPEED)
-#define   T (245)
-#define   W (127)
+#define   T (239)
+#define   W (125)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(BALANCED)
-#define   T (398)
-#define   W (340)
+#define   T (384)
+#define   W (321)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(SIG_SIZE)
-#define   T (945)
-#define   W (907)
+#define   T (580)
+#define   W (527)
 #define POSITION_IN_FW_STRING_T uint16_t
 
 #else
@@ -116,16 +122,16 @@
 #define   K (150)
 
 #if defined(SPEED)
-#define   T (327)
-#define   W (169)
+#define   T (321)
+#define   W (167)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(BALANCED)
-#define   T (507)
+#define   T (512)
 #define   W (427)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(SIG_SIZE)
-#define   T (968)
-#define   W (912)
+#define   T (832)
+#define   W (762)
 #define POSITION_IN_FW_STRING_T uint16_t
 
 #else
@@ -148,16 +154,16 @@
 #define   M ( 25)
 
 #if defined(SPEED)
-#define   T (153)
-#define   W (79)
+#define   T (147)
+#define   W (76)
 #define POSITION_IN_FW_STRING_T uint8_t
 #elif defined(BALANCED)
-#define   T (243)
-#define   W (206)
+#define   T (256)
+#define   W (220)
 #define POSITION_IN_FW_STRING_T uint8_t
 #elif defined(SIG_SIZE)
-#define   T (871)
-#define   W (850)
+#define   T (512)
+#define   W (484)
 #define POSITION_IN_FW_STRING_T uint16_t
 
 #else
@@ -172,16 +178,16 @@
 #define   M ( 40)
 
 #if defined(SPEED)
-#define   T (230)
-#define   W (123)
+#define   T (224)
+#define   W (119)
 #define POSITION_IN_FW_STRING_T uint8_t
 #elif defined(BALANCED)
-#define   T (255)
-#define   W (176)
+#define   T (268)
+#define   W (196)
 #define POSITION_IN_FW_STRING_T uint8_t
 #elif defined(SIG_SIZE)
-#define   T (949)
-#define   W (914)
+#define   T (512)
+#define   W (463)
 #define POSITION_IN_FW_STRING_T uint16_t
 
 #else
@@ -196,16 +202,16 @@
 #define   M ( 48)
 
 #if defined(SPEED)
-#define   T (306)
-#define   W (157)
+#define   T (300)
+#define   W (153)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(BALANCED)
 #define   T (356)
-#define   W (257)
+#define   W (258)
 #define POSITION_IN_FW_STRING_T uint16_t
 #elif defined(SIG_SIZE)
-#define   T (996)
-#define   W (945)
+#define   T (642)
+#define   W (575)
 #define POSITION_IN_FW_STRING_T uint16_t
 
 #else
@@ -221,7 +227,8 @@
 #endif
 
 
-#define HASH_CSPRNG_DOMAIN_SEP_CONST ((uint16_t)32768)
+#define CSPRNG_DOMAIN_SEP_CONST ((uint16_t)0)
+#define HASH_DOMAIN_SEP_CONST ((uint16_t)32768)
 
 /************* Helper macros for derived parameter computation ***************/
 
@@ -262,19 +269,16 @@
 #define NUM_LEAVES_MERKLE_TREE (T)
 #define NUM_NODES_MERKLE_TREE (2*NUM_LEAVES_MERKLE_TREE-1)
 
-/*to be derived via script for each T/W*/
-#define NUM_LEAVES_SEED_TREE ( T )
-// #define NUM_NODES_SEED_TREE ( 2*NUM_LEAVES_SEED_TREE-1 )
-#define NUM_INNER_NODES_SEED_TREE ( NUM_NODES_SEED_TREE-NUM_LEAVES_SEED_TREE )
+#define NUM_LEAVES_SEED_TREE (T)
+#define NUM_NODES_SEED_TREE (2*NUM_LEAVES_SEED_TREE-1)
 
 /* Sizes of bitpacked field element vectors
  * Bitpacking an n-elements vector of num_bits_for_q-1 bits long values
  * will pack 8 values in num_bits_for_q-1 bytes exactly, leaving the remaining
  * N % 8 as a tail */
-#define DENSELY_PACKED_FQ_VEC_SIZE ((N/8)*BITS_TO_REPRESENT(Q-1) + \
-                                   ROUND_UP( ((N%8)*BITS_TO_REPRESENT(Q-1)),8)/8)
-#define DENSELY_PACKED_FQ_SYN_SIZE (((N-K)/8)*BITS_TO_REPRESENT(Q-1) + \
-                                   ROUND_UP( (((N-K)%8)*BITS_TO_REPRESENT(Q-1)),8)/8)
+#define DENSELY_PACKED_FP_VEC_SIZE ((N/8)*BITS_TO_REPRESENT(P-1) + \
+                                   ROUND_UP( ((N%8)*BITS_TO_REPRESENT(P-1)),8)/8)
+#define DENSELY_PACKED_FP_SYN_SIZE (((N-K)/8)*BITS_TO_REPRESENT(P-1) +              ROUND_UP( (((N-K)%8)*BITS_TO_REPRESENT(P-1)),8)/8)
 #define DENSELY_PACKED_FZ_VEC_SIZE ((N/8)*BITS_TO_REPRESENT(Z-1) + \
                                    ROUND_UP( ((N%8)*BITS_TO_REPRESENT(Z-1)),8)/8)
 #ifdef RSDPG
@@ -285,210 +289,264 @@
 
 /* Derived parameters computed via compute_derived_parameters.py */
 #if ( defined(CATEGORY_1) && defined(RSDP)  && defined(SPEED) )
-#define TREE_NODES_TO_STORE 83
-#define NUM_NODES_SEED_TREE 330
-#define NODES_PER_LEVEL_ARRAY {1, 2, 3, 6, 11, 21, 41, 82, 163}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 1, 3, 8, 19, 42, 88}
-#define BITS_N_ZQ_CT_RNG 923
-#define BITS_BETA_ZQSTAR_CT_RNG 1187
-#define BITS_V_CT_RNG 27260
-#define BITS_N_ZZ_CT_RNG 493
-#define BITS_CWSTR_RNG 1355
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 2, 2, 58, 58}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 30, 60, 64, 128}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 1, 0, 28, 0, 128}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {185, 93, 30}
+#define TREE_CONSECUTIVE_LEAVES {128, 28, 1}
+#define TREE_NODES_TO_STORE 82
+#define BITS_N_FP_CT_RNG 1127
+#define BITS_CHALL_1_FPSTAR_CT_RNG 1421
+#define BITS_V_CT_RNG 28028
+#define BITS_N_FZ_CT_RNG 717
+#define BITS_CWSTR_RNG 3656
 
 #elif ( defined(CATEGORY_1) && defined(RSDP)  && defined(BALANCED) )
-#define TREE_NODES_TO_STORE 107
-#define NUM_NODES_SEED_TREE 504
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 32, 63, 126, 252}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 0, 1, 3}
-#define BITS_N_ZQ_CT_RNG 923
-#define BITS_BETA_ZQSTAR_CT_RNG 1817
-#define BITS_V_CT_RNG 27260
-#define BITS_N_ZZ_CT_RNG 493
-#define BITS_CWSTR_RNG 2102
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 256}
+#define TREE_SUBROOTS 1
+#define TREE_LEAVES_START_INDICES {255}
+#define TREE_CONSECUTIVE_LEAVES {256}
+#define TREE_NODES_TO_STORE 108
+#define BITS_N_FP_CT_RNG 1127
+#define BITS_CHALL_1_FPSTAR_CT_RNG 2170
+#define BITS_V_CT_RNG 28028
+#define BITS_N_FZ_CT_RNG 717
+#define BITS_CWSTR_RNG 4776
 
 #elif ( defined(CATEGORY_1) && defined(RSDP)  && defined(SIG_SIZE) )
-#define TREE_NODES_TO_STORE 120
-#define NUM_NODES_SEED_TREE 1920
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 15, 30, 60, 120, 240, 480, 960}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 1, 3, 7, 15, 31, 63}
-#define BITS_N_ZQ_CT_RNG 923
-#define BITS_BETA_ZQSTAR_CT_RNG 6811
-#define BITS_V_CT_RNG 27260
-#define BITS_N_ZZ_CT_RNG 493
-#define BITS_CWSTR_RNG 9371
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 16, 16, 16, 16, 16, 16}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 16, 32, 64, 128, 256, 512}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 512}
+#define TREE_SUBROOTS 2
+#define TREE_LEAVES_START_INDICES {527, 23}
+#define TREE_CONSECUTIVE_LEAVES {512, 8}
+#define TREE_NODES_TO_STORE 129
+#define BITS_N_FP_CT_RNG 1127
+#define BITS_CHALL_1_FPSTAR_CT_RNG 4130
+#define BITS_V_CT_RNG 28028
+#define BITS_N_FZ_CT_RNG 717
+#define BITS_CWSTR_RNG 10390
 
 #elif ( defined(CATEGORY_3) && defined(RSDP)  && defined(SPEED) )
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 2, 30}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 126, 224}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 1, 14, 224}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {253, 239, 126}
+#define TREE_CONSECUTIVE_LEAVES {224, 14, 1}
 #define TREE_NODES_TO_STORE 125
-#define NUM_NODES_SEED_TREE 492
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 31, 62, 123, 245}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 1, 3, 8}
-#define BITS_N_ZQ_CT_RNG 1361
-#define BITS_BETA_ZQSTAR_CT_RNG 1785
-#define BITS_V_CT_RNG 59289
-#define BITS_N_ZZ_CT_RNG 729
-#define BITS_CWSTR_RNG 2125
+#define BITS_N_FP_CT_RNG 1673
+#define BITS_CHALL_1_FPSTAR_CT_RNG 2163
+#define BITS_V_CT_RNG 60711
+#define BITS_N_FZ_CT_RNG 1065
+#define BITS_CWSTR_RNG 5264
 
 #elif ( defined(CATEGORY_3) && defined(RSDP)  && defined(BALANCED) )
-#define TREE_NODES_TO_STORE 162
-#define NUM_NODES_SEED_TREE 799
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 7, 13, 25, 50, 100, 199, 398}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 1, 4, 11, 25, 53, 110}
-#define BITS_N_ZQ_CT_RNG 1361
-#define BITS_BETA_ZQSTAR_CT_RNG 2868
-#define BITS_V_CT_RNG 59289
-#define BITS_N_ZZ_CT_RNG 729
-#define BITS_CWSTR_RNG 3647
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0, 256}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 128, 256}
+#define TREE_SUBROOTS 2
+#define TREE_LEAVES_START_INDICES {511, 383}
+#define TREE_CONSECUTIVE_LEAVES {256, 128}
+#define TREE_NODES_TO_STORE 165
+#define BITS_N_FP_CT_RNG 1673
+#define BITS_CHALL_1_FPSTAR_CT_RNG 3255
+#define BITS_V_CT_RNG 60711
+#define BITS_N_FZ_CT_RNG 1065
+#define BITS_CWSTR_RNG 8586
 
 #elif ( defined(CATEGORY_3) && defined(RSDP)  && defined(SIG_SIZE) )
-#define TREE_NODES_TO_STORE 177
-#define NUM_NODES_SEED_TREE 1894
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 15, 30, 60, 119, 237, 473, 945}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 1, 3, 7, 16, 35, 74}
-#define BITS_N_ZQ_CT_RNG 1361
-#define BITS_BETA_ZQSTAR_CT_RNG 6730
-#define BITS_V_CT_RNG 59289
-#define BITS_N_ZZ_CT_RNG 729
-#define BITS_CWSTR_RNG 9332
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 8, 8, 8, 8, 136, 136}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 24, 48, 96, 192, 256, 512}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 4, 0, 0, 0, 64, 0, 512}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {647, 327, 27}
+#define TREE_CONSECUTIVE_LEAVES {512, 64, 4}
+#define TREE_NODES_TO_STORE 184
+#define BITS_N_FP_CT_RNG 1673
+#define BITS_CHALL_1_FPSTAR_CT_RNG 4718
+#define BITS_V_CT_RNG 60711
+#define BITS_N_FZ_CT_RNG 1065
+#define BITS_CWSTR_RNG 12880
 
 #elif ( defined(CATEGORY_5) && defined(RSDP)  && defined(SPEED) )
-#define TREE_NODES_TO_STORE 166
-#define NUM_NODES_SEED_TREE 658
-#define NODES_PER_LEVEL_ARRAY {1, 2, 3, 6, 11, 21, 41, 82, 164, 327}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 1, 3, 8, 19, 42, 88, 180}
-#define BITS_N_ZQ_CT_RNG 1827
-#define BITS_BETA_ZQSTAR_CT_RNG 2383
-#define BITS_V_CT_RNG 106427
-#define BITS_N_ZZ_CT_RNG 979
-#define BITS_CWSTR_RNG 3044
+#define TREE_OFFSETS {0, 0, 0, 2, 2, 2, 2, 2, 2, 130}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 6, 12, 24, 48, 96, 192, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 1, 0, 0, 0, 0, 0, 64, 256}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {385, 321, 6}
+#define TREE_CONSECUTIVE_LEAVES {256, 64, 1}
+#define TREE_NODES_TO_STORE 167
+#define BITS_N_FP_CT_RNG 2247
+#define BITS_CHALL_1_FPSTAR_CT_RNG 2905
+#define BITS_V_CT_RNG 108689
+#define BITS_N_FZ_CT_RNG 1431
+#define BITS_CWSTR_RNG 8343
 
 #elif ( defined(CATEGORY_5) && defined(RSDP)  && defined(BALANCED) )
-#define TREE_NODES_TO_STORE 214
-#define NUM_NODES_SEED_TREE 1015
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 32, 64, 127, 254, 507}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 0, 0, 1, 3}
-#define BITS_N_ZQ_CT_RNG 1827
-#define BITS_BETA_ZQSTAR_CT_RNG 3658
-#define BITS_V_CT_RNG 106427
-#define BITS_N_ZZ_CT_RNG 979
-#define BITS_CWSTR_RNG 4734
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 0, 512}
+#define TREE_SUBROOTS 1
+#define TREE_LEAVES_START_INDICES {511}
+#define TREE_CONSECUTIVE_LEAVES {512}
+#define TREE_NODES_TO_STORE 220
+#define BITS_N_FP_CT_RNG 2247
+#define BITS_CHALL_1_FPSTAR_CT_RNG 4347
+#define BITS_V_CT_RNG 108689
+#define BITS_N_FZ_CT_RNG 1431
+#define BITS_CWSTR_RNG 10746
 
 #elif ( defined(CATEGORY_5) && defined(RSDP)  && defined(SIG_SIZE) )
-#define TREE_NODES_TO_STORE 231
-#define NUM_NODES_SEED_TREE 1938
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 31, 61, 121, 242, 484, 968}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 1, 4, 11, 25, 53}
-#define BITS_N_ZQ_CT_RNG 1827
-#define BITS_BETA_ZQSTAR_CT_RNG 6914
-#define BITS_V_CT_RNG 106427
-#define BITS_N_ZZ_CT_RNG 979
-#define BITS_CWSTR_RNG 9665
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 128}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256, 384, 768}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 64, 0, 768}
+#define TREE_SUBROOTS 2
+#define TREE_LEAVES_START_INDICES {895, 447}
+#define TREE_CONSECUTIVE_LEAVES {768, 64}
+#define TREE_NODES_TO_STORE 251
+#define BITS_N_FP_CT_RNG 2247
+#define BITS_CHALL_1_FPSTAR_CT_RNG 6734
+#define BITS_V_CT_RNG 108689
+#define BITS_N_FZ_CT_RNG 1431
+#define BITS_CWSTR_RNG 18150
 
 #elif ( defined(CATEGORY_1) &&  defined(RSDPG)  && defined(SPEED) )
-#define TREE_NODES_TO_STORE 78
-#define NUM_NODES_SEED_TREE 310
-#define NODES_PER_LEVEL_ARRAY {1, 2, 3, 5, 10, 20, 39, 77, 153}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 1, 4, 10, 22, 47, 98}
-#define BITS_N_ZQ_CT_RNG 521
-#define BITS_BETA_ZQSTAR_CT_RNG 1413
-#define BITS_V_CT_RNG 6208
-#define BITS_W_CT_RNG 5311
-#define BITS_M_ZZ_CT_RNG 199
-#define BITS_CWSTR_RNG 1264
+#define TREE_OFFSETS {0, 0, 0, 0, 2, 6, 6, 38, 38}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 14, 24, 48, 64, 128}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 1, 2, 0, 16, 0, 128}
+#define TREE_SUBROOTS 4
+#define TREE_LEAVES_START_INDICES {165, 85, 27, 14}
+#define TREE_CONSECUTIVE_LEAVES {128, 16, 2, 1}
+#define TREE_NODES_TO_STORE 76
+#define BITS_N_FP_CT_RNG 729
+#define BITS_CHALL_1_FPSTAR_CT_RNG 1647
+#define BITS_V_CT_RNG 6624
+#define BITS_W_CT_RNG 5677
+#define BITS_M_FZ_CT_RNG 343
+#define BITS_CWSTR_RNG 3472
 
 #elif ( defined(CATEGORY_1) &&  defined(RSDPG)  && defined(BALANCED) )
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 256}
+#define TREE_SUBROOTS 1
+#define TREE_LEAVES_START_INDICES {255}
+#define TREE_CONSECUTIVE_LEAVES {256}
 #define TREE_NODES_TO_STORE 101
-#define NUM_NODES_SEED_TREE 488
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 31, 61, 122, 243}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 1, 4, 10}
-#define BITS_N_ZQ_CT_RNG 521
-#define BITS_BETA_ZQSTAR_CT_RNG 2228
-#define BITS_V_CT_RNG 6208
-#define BITS_W_CT_RNG 5311
-#define BITS_M_ZZ_CT_RNG 199
-#define BITS_CWSTR_RNG 2030
+#define BITS_N_FP_CT_RNG 729
+#define BITS_CHALL_1_FPSTAR_CT_RNG 2682
+#define BITS_V_CT_RNG 6624
+#define BITS_W_CT_RNG 5677
+#define BITS_M_FZ_CT_RNG 343
+#define BITS_CWSTR_RNG 4776
 
 #elif ( defined(CATEGORY_1) &&  defined(RSDPG)  && defined(SIG_SIZE) )
-#define TREE_NODES_TO_STORE 113
-#define NUM_NODES_SEED_TREE 1745
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 7, 14, 28, 55, 109, 218, 436, 871}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 1, 3, 7, 16, 35, 73, 149}
-#define BITS_N_ZQ_CT_RNG 521
-#define BITS_BETA_ZQSTAR_CT_RNG 7903
-#define BITS_V_CT_RNG 6208
-#define BITS_W_CT_RNG 5311
-#define BITS_M_ZZ_CT_RNG 199
-#define BITS_CWSTR_RNG 8468
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 0, 512}
+#define TREE_SUBROOTS 1
+#define TREE_LEAVES_START_INDICES {511}
+#define TREE_CONSECUTIVE_LEAVES {512}
+#define TREE_NODES_TO_STORE 117
+#define BITS_N_FP_CT_RNG 729
+#define BITS_CHALL_1_FPSTAR_CT_RNG 5085
+#define BITS_V_CT_RNG 6624
+#define BITS_W_CT_RNG 5677
+#define BITS_M_FZ_CT_RNG 343
+#define BITS_CWSTR_RNG 9153
 
 #elif ( defined(CATEGORY_3) &&  defined(RSDPG)  && defined(SPEED) )
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 64}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 192}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 32, 192}
+#define TREE_SUBROOTS 2
+#define TREE_LEAVES_START_INDICES {255, 223}
+#define TREE_CONSECUTIVE_LEAVES {192, 32}
 #define TREE_NODES_TO_STORE 119
-#define NUM_NODES_SEED_TREE 462
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 15, 29, 58, 115, 230}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 1, 4, 10, 23}
-#define BITS_N_ZQ_CT_RNG 751
-#define BITS_BETA_ZQSTAR_CT_RNG 2125
-#define BITS_V_CT_RNG 13483
-#define BITS_W_CT_RNG 11025
-#define BITS_M_ZZ_CT_RNG 317
-#define BITS_CWSTR_RNG 2003
+#define BITS_N_FP_CT_RNG 1071
+#define BITS_CHALL_1_FPSTAR_CT_RNG 2502
+#define BITS_V_CT_RNG 14211
+#define BITS_W_CT_RNG 11655
+#define BITS_M_FZ_CT_RNG 539
+#define BITS_CWSTR_RNG 5128
 
 #elif ( defined(CATEGORY_3) &&  defined(RSDPG)  && defined(BALANCED) )
-#define TREE_NODES_TO_STORE 134
-#define NUM_NODES_SEED_TREE 510
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 32, 64, 128, 255}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 0, 0, 0}
-#define BITS_N_ZQ_CT_RNG 751
-#define BITS_BETA_ZQSTAR_CT_RNG 2351
-#define BITS_V_CT_RNG 13483
-#define BITS_W_CT_RNG 11025
-#define BITS_M_ZZ_CT_RNG 317
-#define BITS_CWSTR_RNG 2205
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 8, 24, 24, 24, 24}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 24, 32, 64, 128, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 4, 8, 0, 0, 0, 256}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {279, 47, 27}
+#define TREE_CONSECUTIVE_LEAVES {256, 8, 4}
+#define TREE_NODES_TO_STORE 138
+#define BITS_N_FP_CT_RNG 1071
+#define BITS_CHALL_1_FPSTAR_CT_RNG 2925
+#define BITS_V_CT_RNG 14211
+#define BITS_W_CT_RNG 11655
+#define BITS_M_FZ_CT_RNG 539
+#define BITS_CWSTR_RNG 6444
 
 #elif ( defined(CATEGORY_3) &&  defined(RSDPG)  && defined(SIG_SIZE) )
-#define TREE_NODES_TO_STORE 167
-#define NUM_NODES_SEED_TREE 1901
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 15, 30, 60, 119, 238, 475, 949}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 1, 3, 7, 16, 34, 71}
-#define BITS_N_ZQ_CT_RNG 751
-#define BITS_BETA_ZQSTAR_CT_RNG 8627
-#define BITS_V_CT_RNG 13483
-#define BITS_W_CT_RNG 11025
-#define BITS_M_ZZ_CT_RNG 317
-#define BITS_CWSTR_RNG 9373
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 0, 0, 0, 0, 512}
+#define TREE_SUBROOTS 1
+#define TREE_LEAVES_START_INDICES {511}
+#define TREE_CONSECUTIVE_LEAVES {512}
+#define TREE_NODES_TO_STORE 165
+#define BITS_N_FP_CT_RNG 1071
+#define BITS_CHALL_1_FPSTAR_CT_RNG 5238
+#define BITS_V_CT_RNG 14211
+#define BITS_W_CT_RNG 11655
+#define BITS_M_FZ_CT_RNG 539
+#define BITS_CWSTR_RNG 9981
 
 #elif ( defined(CATEGORY_5) &&  defined(RSDPG)  && defined(SPEED) )
-#define TREE_NODES_TO_STORE 155
-#define NUM_NODES_SEED_TREE 616
-#define NODES_PER_LEVEL_ARRAY {1, 2, 3, 5, 10, 20, 39, 77, 153, 306}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 1, 4, 10, 22, 47, 98, 201}
-#define BITS_N_ZQ_CT_RNG 1007
-#define BITS_BETA_ZQSTAR_CT_RNG 2828
-#define BITS_V_CT_RNG 23112
-#define BITS_W_CT_RNG 19646
-#define BITS_M_ZZ_CT_RNG 385
-#define BITS_CWSTR_RNG 2832
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 8, 24, 88, 88}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 56, 96, 128, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 4, 8, 32, 0, 256}
+#define TREE_SUBROOTS 4
+#define TREE_LEAVES_START_INDICES {343, 183, 111, 59}
+#define TREE_CONSECUTIVE_LEAVES {256, 32, 8, 4}
+#define TREE_NODES_TO_STORE 153
+#define BITS_N_FP_CT_RNG 1431
+#define BITS_CHALL_1_FPSTAR_CT_RNG 3357
+#define BITS_V_CT_RNG 24192
+#define BITS_W_CT_RNG 20594
+#define BITS_M_FZ_CT_RNG 679
+#define BITS_CWSTR_RNG 7929
 
 #elif ( defined(CATEGORY_5) &&  defined(RSDPG)  && defined(BALANCED) )
-#define TREE_NODES_TO_STORE 183
-#define NUM_NODES_SEED_TREE 715
-#define NODES_PER_LEVEL_ARRAY {1, 2, 3, 6, 12, 23, 45, 89, 178, 356}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 1, 3, 7, 16, 35, 74, 152}
-#define BITS_N_ZQ_CT_RNG 1007
-#define BITS_BETA_ZQSTAR_CT_RNG 3281
-#define BITS_V_CT_RNG 23112
-#define BITS_W_CT_RNG 19646
-#define BITS_M_ZZ_CT_RNG 385
-#define BITS_CWSTR_RNG 3330
+#define TREE_OFFSETS {0, 0, 0, 0, 0, 0, 8, 8, 8, 200}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 16, 32, 56, 112, 224, 256}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 0, 0, 4, 0, 0, 96, 256}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {455, 359, 59}
+#define TREE_CONSECUTIVE_LEAVES {256, 96, 4}
+#define TREE_NODES_TO_STORE 185
+#define BITS_N_FP_CT_RNG 1431
+#define BITS_CHALL_1_FPSTAR_CT_RNG 3897
+#define BITS_V_CT_RNG 24192
+#define BITS_W_CT_RNG 20594
+#define BITS_M_FZ_CT_RNG 679
+#define BITS_CWSTR_RNG 8937
 
 #elif ( defined(CATEGORY_5) &&  defined(RSDPG)  && defined(SIG_SIZE) )
-#define TREE_NODES_TO_STORE 219
-#define NUM_NODES_SEED_TREE 1994
-#define NODES_PER_LEVEL_ARRAY {1, 2, 4, 8, 16, 32, 63, 125, 249, 498, 996}
-#define MISSING_NODES_BEFORE_LEVEL_ARRAY {0, 0, 0, 0, 0, 0, 0, 1, 4, 11, 25}
-#define BITS_N_ZQ_CT_RNG 1007
-#define BITS_BETA_ZQSTAR_CT_RNG 9070
-#define BITS_V_CT_RNG 23112
-#define BITS_W_CT_RNG 19646
-#define BITS_M_ZZ_CT_RNG 385
-#define BITS_CWSTR_RNG 9947
+#define TREE_OFFSETS {0, 0, 0, 0, 4, 4, 4, 4, 4, 4, 260}
+#define TREE_NODES_PER_LEVEL {1, 2, 4, 8, 12, 24, 48, 96, 192, 384, 512}
+#define TREE_LEAVES_PER_LEVEL {0, 0, 0, 2, 0, 0, 0, 0, 0, 128, 512}
+#define TREE_SUBROOTS 3
+#define TREE_LEAVES_START_INDICES {771, 643, 13}
+#define TREE_CONSECUTIVE_LEAVES {512, 128, 2}
+#define TREE_NODES_TO_STORE 220
+#define BITS_N_FP_CT_RNG 1431
+#define BITS_CHALL_1_FPSTAR_CT_RNG 6597
+#define BITS_V_CT_RNG 24192
+#define BITS_W_CT_RNG 20594
+#define BITS_M_FZ_CT_RNG 679
+#define BITS_CWSTR_RNG 15140
 
 #endif

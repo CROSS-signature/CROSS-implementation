@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <string.h> // memcpy(...), memset(...)
 
+#include "csprng_hash.h"
 #include "seedtree.h"
 
 #define LEFT_CHILD(i) (2*(i)+1)
@@ -88,32 +89,72 @@ void ptree(unsigned char seed_tree[NUM_NODES_SEED_TREE * SEED_LENGTH_BYTES]){
 int seed_leaves(unsigned char rounds_seeds[T*SEED_LENGTH_BYTES],
                 const unsigned char root_seed[SEED_LENGTH_BYTES],
                 const unsigned char salt[SALT_LENGTH_BYTES]){
+
+   CSPRNG_STATE_T single_csprng_state;
+   PAR_CSPRNG_STATE_T par_csprng_state;
+
    const uint32_t csprng_input_len = SALT_LENGTH_BYTES +
                                      SEED_LENGTH_BYTES;
-   unsigned char csprng_input[csprng_input_len];
-   memcpy(csprng_input,root_seed,SEED_LENGTH_BYTES);   
-   memcpy(csprng_input+SEED_LENGTH_BYTES,salt,SALT_LENGTH_BYTES);
 
+   /* CSPRNG input: seed | salt | domain separation counter (0 to 4) */
+   unsigned char single_csprng_input[csprng_input_len];
+   unsigned char par_csprng_input[4][csprng_input_len];
+   unsigned char par_csprng_output[4][(T/4+1)*SEED_LENGTH_BYTES];
+
+   /* copy the root seed and the salt */
+   memcpy(single_csprng_input,root_seed,SEED_LENGTH_BYTES);   
+   memcpy(single_csprng_input+SEED_LENGTH_BYTES,salt,SALT_LENGTH_BYTES);
+
+   /* call the CSPRNG once to generate 4 intermediate seeds */
    unsigned char quad_seed[4*SEED_LENGTH_BYTES];
-   CSPRNG_STATE_T csprng_states[4];
-   csprng_initialize(&csprng_states[0], csprng_input, csprng_input_len, CSPRNG_DOMAIN_SEP_CONST);
-   csprng_randombytes(quad_seed,4*SEED_LENGTH_BYTES,&csprng_states[0]);
+   csprng_initialize(&single_csprng_state, single_csprng_input, csprng_input_len, 0);
+   csprng_randombytes(quad_seed,4*SEED_LENGTH_BYTES,&single_csprng_state);
+
+   memset(par_csprng_input,0,4*csprng_input_len);
+
+   /* copy the salt */
+   for(int i=0; i<4; i++){
+      memcpy(par_csprng_input[i]+SEED_LENGTH_BYTES,salt,SALT_LENGTH_BYTES);
+   }
 
    int remainders[4] = {0};
    if(T%4 > 0){ remainders[0] = 1; } 
    if(T%4 > 1){ remainders[1] = 1; } 
    if(T%4 > 2){ remainders[2] = 1; } 
    
-   int offset = 0;
-   uint16_t dsc_counter = 0;
+   /* copy the 4 intermediate seeds */
    for (int i = 0; i < 4; i++){
-       memcpy(csprng_input,&quad_seed[i*SEED_LENGTH_BYTES],SEED_LENGTH_BYTES);
-       dsc_counter += 1;
-       csprng_initialize(&csprng_states[i], csprng_input, csprng_input_len, CSPRNG_DOMAIN_SEP_CONST + dsc_counter);
-       
-       csprng_randombytes(&rounds_seeds[((T/4)*i+offset)*SEED_LENGTH_BYTES],
-                          (T/4+remainders[i])*SEED_LENGTH_BYTES,
-                          &csprng_states[i]);
+      memcpy(par_csprng_input[i],&quad_seed[i*SEED_LENGTH_BYTES],SEED_LENGTH_BYTES);   
+   }
+
+   /* make 4 (parallel) calls to the CSPRNG */
+   csprng_initialize_par(
+        4,
+        &par_csprng_state, 
+        par_csprng_input[0],
+        par_csprng_input[1],
+        par_csprng_input[2],
+        par_csprng_input[3], 
+        csprng_input_len,
+        CSPRNG_DOMAIN_SEP_CONST + 1,
+        CSPRNG_DOMAIN_SEP_CONST + 2,
+        CSPRNG_DOMAIN_SEP_CONST + 3,
+        CSPRNG_DOMAIN_SEP_CONST + 4);
+   csprng_randombytes_par(
+        4,
+        &par_csprng_state,
+        par_csprng_output[0],
+        par_csprng_output[1],
+        par_csprng_output[2],
+        par_csprng_output[3], 
+        (T/4+1)*SEED_LENGTH_BYTES);
+
+   /* store the CSPRNG outputs as round seeds */
+   int offset = 0;
+   for(int i=0; i<4; i++){
+       memcpy(&rounds_seeds[((T/4)*i+offset)*SEED_LENGTH_BYTES],
+              par_csprng_output[i],
+              (T/4+remainders[i])*SEED_LENGTH_BYTES);
        offset += remainders[i];
    }
    return T;
@@ -135,9 +176,9 @@ int seed_path(unsigned char *seed_storage,
 }
 
 /* simply picks seeds out of the storage and places them in the in-memory array */
-uint8_t rebuild_leaves(unsigned char rounds_seeds[T*SEED_LENGTH_BYTES],                           
-                           const unsigned char indices_to_publish[T],
-                           const unsigned char *seed_storage){
+uint8_t rebuild_leaves(unsigned char rounds_seeds[T*SEED_LENGTH_BYTES],
+                       const unsigned char indices_to_publish[T],
+                       const unsigned char *seed_storage){
     int published = 0;
     for(int i=0; i<T; i++){
        if(indices_to_publish[i] == TO_PUBLISH){
@@ -232,13 +273,23 @@ void gen_seed_tree(unsigned char seed_tree[NUM_NODES_SEED_TREE * SEED_LENGTH_BYT
                    const unsigned char root_seed[SEED_LENGTH_BYTES],
                    const unsigned char salt[SALT_LENGTH_BYTES])
 {
-    /* input buffer to the CSPRNG, contains the seed to be expanded, a salt,
-     * and the integer index of the node being expanded for domain separation */
+    PAR_CSPRNG_STATE_T tree_csprng_state;
+
+    /* CSPRNG input: father seed | salt | father node index
+     * CSPRNG output: left child seed | right child seed */
     const uint32_t csprng_input_len = SALT_LENGTH_BYTES +
-        SEED_LENGTH_BYTES;
-    unsigned char csprng_input[csprng_input_len];
-    CSPRNG_STATE_T tree_csprng_state;
-    memcpy(csprng_input+SEED_LENGTH_BYTES, salt, SALT_LENGTH_BYTES);
+                                      SEED_LENGTH_BYTES;
+
+    /* enqueue the calls to the CSPRNG */
+    int to_expand = 0;
+    unsigned char in_queue[4][csprng_input_len];
+    uint16_t in_queue_dsc[4];
+    int out_pos_queue[4] = {0};
+
+    /* copy the salt into all 4 CSPRNG inputs */
+    for(int i=0; i<4; i++){
+        memcpy(in_queue[i]+SEED_LENGTH_BYTES, salt, SALT_LENGTH_BYTES);
+    }
 
     /* Set the root seed in the tree from the received parameter */
     memcpy(seed_tree,root_seed,SEED_LENGTH_BYTES);
@@ -258,23 +309,46 @@ void gen_seed_tree(unsigned char seed_tree[NUM_NODES_SEED_TREE * SEED_LENGTH_BYT
     int start_node = 0;
     for (int level = 0; level < LOG2(T); level++){
         for (int node_in_level = 0; node_in_level < npl[level]-lpl[level]; node_in_level++ ) {
+
+            to_expand++;
             uint16_t father_node = start_node + node_in_level;
             uint16_t left_child_node = LEFT_CHILD(father_node) - off[level];
 
-            /* prepare the CSPRNG input to expand the father node */
-            memcpy(csprng_input,
+            /* save the father seed in the CSPRNG input */
+            memcpy(in_queue[to_expand-1],
                     seed_tree + father_node*SEED_LENGTH_BYTES,
                     SEED_LENGTH_BYTES);
 
-            /* Domain separation using father node index */
-            uint16_t domain_sep = CSPRNG_DOMAIN_SEP_CONST + father_node;
+            /* save the position of the CSPRNG output (the left child) */
+            out_pos_queue[to_expand-1] = left_child_node*SEED_LENGTH_BYTES;  
 
-            /* Generate the children (stored contiguously).
-             * By construction, the tree has always two children */
-            csprng_initialize(&tree_csprng_state, csprng_input, csprng_input_len, domain_sep);
-            csprng_randombytes(seed_tree + left_child_node*SEED_LENGTH_BYTES,
-                    2*SEED_LENGTH_BYTES,
-                    &tree_csprng_state);
+            /* add a domain separator to the CSPRNG input (the index of the father node) */
+            in_queue_dsc[to_expand-1] = CSPRNG_DOMAIN_SEP_CONST + father_node;
+
+            /* call CSPRNG in batches of 4 (or less when changing tree level) */
+            if(to_expand == 4 || node_in_level == (npl[level]-lpl[level] - 1)) {
+                csprng_initialize_par(
+                    to_expand, 
+                    &tree_csprng_state, 
+                    in_queue[0],
+                    in_queue[1],
+                    in_queue[2],
+                    in_queue[3],
+                    csprng_input_len,
+                    in_queue_dsc[0],
+                    in_queue_dsc[1],
+                    in_queue_dsc[2],
+                    in_queue_dsc[3]);
+                csprng_randombytes_par(
+                    to_expand, 
+                    &tree_csprng_state, 
+                    seed_tree + out_pos_queue[0],
+                    seed_tree + out_pos_queue[1],
+                    seed_tree + out_pos_queue[2],
+                    seed_tree + out_pos_queue[3],
+                    2*SEED_LENGTH_BYTES);
+                to_expand = 0;
+            }
         }
         start_node += npl[level];
     }
@@ -344,10 +418,10 @@ int seed_path(unsigned char *seed_storage,
 /*****************************************************************************/
 
 uint8_t rebuild_tree(unsigned char
-                      seed_tree[NUM_NODES_SEED_TREE*SEED_LENGTH_BYTES],
-                      const unsigned char indices_to_publish[T],
-                      const unsigned char *stored_seeds,
-                      const unsigned char salt[SALT_LENGTH_BYTES])
+                     seed_tree[NUM_NODES_SEED_TREE*SEED_LENGTH_BYTES],
+                     const unsigned char indices_to_publish[T],
+                     const unsigned char *stored_seeds,
+                     const unsigned char salt[SALT_LENGTH_BYTES])
 {
     /* complete linearized binary tree containing boolean values determining
      * if a node is to be released or not according to aboves convention
@@ -355,16 +429,25 @@ uint8_t rebuild_tree(unsigned char
     unsigned char flags_tree_to_publish[NUM_NODES_SEED_TREE] = {0};
     compute_seeds_to_publish(flags_tree_to_publish, indices_to_publish);
 
+    PAR_CSPRNG_STATE_T tree_csprng_state;
+
     const uint32_t csprng_input_len = SALT_LENGTH_BYTES +
-        SEED_LENGTH_BYTES;
-    unsigned char csprng_input[csprng_input_len];
-    CSPRNG_STATE_T tree_csprng_state;
+                                      SEED_LENGTH_BYTES;
+
+    /* enqueue the calls to the CSPRNG */
+    int to_expand = 0;
+    unsigned char in_queue[4][csprng_input_len];
+    uint16_t in_queue_dsc[4];
+    int out_pos_queue[4] = {0};
+
+    /* copy the salt into all 4 CSPRNG inputs */
+    for(int i=0; i<4; i++){
+        memcpy(in_queue[i]+SEED_LENGTH_BYTES, salt, SALT_LENGTH_BYTES);
+    }
 
     const uint16_t off[LOG2(T)+1] = TREE_OFFSETS;
     const uint16_t npl[LOG2(T)+1] = TREE_NODES_PER_LEVEL;
     const uint16_t lpl[LOG2(T)+1] = TREE_LEAVES_PER_LEVEL;
-
-    memcpy(csprng_input + SEED_LENGTH_BYTES, salt, SALT_LENGTH_BYTES);
 
     /* regenerating the seed tree never starts from the root, as it is never
      * disclosed */
@@ -372,6 +455,7 @@ uint8_t rebuild_tree(unsigned char
     int start_node = 1;
     for (int level = 1; level <= LOG2(T); level++){
         for (int node_in_level = 0; node_in_level < npl[level]; node_in_level++ ) {
+
             uint16_t current_node = start_node + node_in_level;
             uint16_t father_node = PARENT(current_node) + (off[level-1] >> 1);
             uint16_t left_child = LEFT_CHILD(current_node) - off[level];
@@ -390,19 +474,44 @@ uint8_t rebuild_tree(unsigned char
              * Since there is no reason of expanding leaves, only iterate to nodes per level (npl)
              * minus leaves per level (lpl) in each level */
             if ( ( flags_tree_to_publish[current_node] == TO_PUBLISH ) && (node_in_level < npl[level]-lpl[level] ) ) {
-                /* prepare the CSPRNG input to expand the children of node current_node */
-                memcpy(csprng_input,
+                
+                to_expand++;
+                
+                /* save the father seed in the CSPRNG input */
+                memcpy(in_queue[to_expand-1],
                         seed_tree + current_node*SEED_LENGTH_BYTES,
                         SEED_LENGTH_BYTES);
 
-                /* Domain separation using father node index */
-                uint16_t domain_sep = CSPRNG_DOMAIN_SEP_CONST + current_node;
+                /* save the position of the CSPRNG output (the left child) */
+                out_pos_queue[to_expand-1] = left_child*SEED_LENGTH_BYTES; 
 
-                /* expand the children (stored contiguously), by construction always two children */
-                csprng_initialize(&tree_csprng_state, csprng_input, csprng_input_len, domain_sep);
-                csprng_randombytes(seed_tree + left_child*SEED_LENGTH_BYTES,
-                        2*SEED_LENGTH_BYTES,
-                        &tree_csprng_state);
+                /* add a domain separator to the CSPRNG input (the index of the father node) */
+                in_queue_dsc[to_expand-1] = CSPRNG_DOMAIN_SEP_CONST + current_node;
+            }
+
+            /* call CSPRNG in batches of 4 (or less when changing tree level) */
+            if(to_expand == 4 || node_in_level == (npl[level]-lpl[level] - 1)) {
+                csprng_initialize_par(
+                    to_expand, 
+                    &tree_csprng_state, 
+                    in_queue[0],
+                    in_queue[1],
+                    in_queue[2],
+                    in_queue[3],
+                    csprng_input_len,
+                    in_queue_dsc[0],
+                    in_queue_dsc[1],
+                    in_queue_dsc[2],
+                    in_queue_dsc[3]);
+                csprng_randombytes_par(
+                    to_expand, 
+                    &tree_csprng_state, 
+                    seed_tree + out_pos_queue[0],
+                    seed_tree + out_pos_queue[1],
+                    seed_tree + out_pos_queue[2],
+                    seed_tree + out_pos_queue[3],
+                    2*SEED_LENGTH_BYTES);
+                to_expand = 0;
             }
         }
         start_node += npl[level];

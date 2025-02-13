@@ -34,7 +34,7 @@ against an available libkeccak installation.
 
 This directory provides Cmake based building facilites to generate
 executable files either performing a benchmark of CROSS, performing unit testing
-of the underlying arithmetics or generating the Known Answer Test files in the
+of the underlying arithmetics or generating the Known Answer Test files in the 
 KAT folder. Furthermore, we provide the Sage scripts employed to estimate
 the cost of attacking the instances of RSDP and RSDPG employed in CROSS.
 
@@ -49,7 +49,7 @@ procedure:
 By default, the optimized implementation will be compiled (note that it provides
 compatibility fallbacks if AVX2 ISA extensions are not available).
 To select the reference implementation for building, add -DREFERENCE=1 to the
-command in step 3, i.e., run
+command in step 3, i.e., run 
 
 cmake ../ -DREFERENCE=1
 
@@ -71,14 +71,14 @@ A set of binaries, one for each category-optimization corner-underlying problem
 triple will be generated in the bin subdirectory of the build directory.
 Running each one of these binaries generates the KATs for the triple.
 
-To alleviate the effort of generating all KATs, a commodity script
+To alleviate the effort of generating all KATs, a commodity script 
 which generates them all KATs is provided : gen_all_kat.sh
 To use it, after following the aforementioned compilation procedure, change one
 directory up from build with
 
 cd ..
 
-and run
+and run 
 
 ./gen_all_kat.sh
 
@@ -86,15 +86,19 @@ All KAT files will be generated in the KAT top-level-directory.
 
 
 • KAT
-The directory contains a set of requests/responses to the Known Answer Tests,
+The directory contains a set of requests/responses to the Known Answer Tests, 
 obtainable with the code present in Additional_Implementations/KAT_Generation.
 The SHA-2-512 digests of all the files are provided in the sha_2_512_sum_KAT_files
 file, and can be verified as:
+
 sha512sum -c sha_512_sum_KATs
 
 • Supporting_Documentation
 
-The PDF document describing the CROSS cryptosystem in detail.
+The PDF document constituting the CROSS specification, a security guide 
+which details the security analyses resulting in the CROSS design, and a 
+changelog document reporting the differences between the first and second 
+round submission of CROSS.
 
 • LICENSE.txt
 
@@ -102,7 +106,7 @@ The file containing the public domain license condition for the portion of the
 codebase which was authored by the submitter and implementors.
 
 The code which was not directly authored by the submitters and implementors
-is the one relative to AES, SHA-2 and SHA-3: the included implementations were released
+is the one relative SHAKE: the included implementations were released
 by the respective authors under public domain, and the submitters and
 implementors hereby re-license the present copy under public domain.
 

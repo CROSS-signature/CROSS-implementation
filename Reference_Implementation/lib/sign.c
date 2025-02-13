@@ -2,11 +2,17 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 1.1 (March 2023)
+ * @version 2.0 (February 2025)
  *
- * @author Alessandro Barenghi <alessandro.barenghi@polimi.it>
- * @author Gerardo Pelosi <gerardo.pelosi@polimi.it>
- *
+ * Authors listed in alphabetical order:
+ * 
+ * @author: Alessandro Barenghi <alessandro.barenghi@polimi.it>
+ * @author: Marco Gianvecchio <marco.gianvecchio@mail.polimi.it>
+ * @author: Patrick Karl <patrick.karl@tum.de>
+ * @author: Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @author: Jonas Schupp <jonas.schupp@tum.de>
+ * 
+ * 
  * This code is hereby placed in the public domain.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
@@ -23,17 +29,19 @@
  *
  **/
 
-#include "api.h"
 #include <stddef.h>  //  size_t
 #include <string.h>  // memcpy
+
+#include "api.h"
+
 /*----------------------------------------------------------------------------*/
 
 int crypto_sign_keypair(unsigned char *pk,
                         unsigned char *sk)
 {
    /* keygen cannot fail */
-   CROSS_keygen((prikey_t *) sk,
-                (pubkey_t *) pk);
+   CROSS_keygen((sk_t *) sk,
+                (pk_t *) pk);
 
    return 0; // NIST convention: 0 == zero errors
 } // end crypto_sign_keypair
@@ -43,17 +51,19 @@ int crypto_sign_keypair(unsigned char *pk,
 /*... generating a signed message sm[0],sm[1],...,sm[*smlen-1]                */
 /*... from original message m[0],m[1],...,m[mlen-1]                           */
 /*... under secret key sk[0],sk[1],...                                        */
-int crypto_sign(unsigned char *sm,
-                unsigned long long *smlen,     // out parameter
-                const unsigned char *m, unsigned long long mlen,  // in parameter
-                const unsigned char *sk)                          // in parameter
+int crypto_sign(unsigned char *sm,                              // out parameter
+                unsigned long long *smlen,                      // out parameter
+                const unsigned char *m,                         // in parameter
+                unsigned long long mlen,                        // in parameter
+                const unsigned char *sk)                        // in parameter
 {
    /* sign cannot fail */
    memcpy(sm, m, mlen);
-   CROSS_sign((const prikey_t *) sk,                               // in parameter
-             (const char *const) m, (const uint64_t) mlen,         // in parameter
-             (sig_t *) (sm+mlen));                                 // out parameter
-   *smlen = mlen + (unsigned long long) sizeof(sig_t);
+   CROSS_sign((const sk_t *) sk,                            // in parameter
+             (const char *const) m,                             // in parameter
+             (const uint64_t) mlen,                             // in parameter
+             (CROSS_sig_t *) (sm+mlen));                        // out parameter
+   *smlen = mlen + (unsigned long long) sizeof(CROSS_sig_t);
 
    return 0;  // NIST convention: 0 == zero errors
 } // end crypto_sign
@@ -63,20 +73,21 @@ int crypto_sign(unsigned char *sm,
 /*.  ... verifying a signed message sm[0],sm[1],...,sm[smlen-1]               */
 /*.  ... under public key pk[0],pk[1],...                                     */
 /*.  ... and producing original message m[0],m[1],...,m[*mlen-1]              */
-int crypto_sign_open(unsigned char *m,
-                     unsigned long long *mlen,        // out parameter
-                     const unsigned char *sm, unsigned long long smlen, // in parameter
-                     const unsigned char *pk)                           // in parameter
+int crypto_sign_open(unsigned char *m,                          // out parameter
+                     unsigned long long *mlen,                  // out parameter
+                     const unsigned char *sm,                   // in parameter
+                     unsigned long long smlen,                  // in parameter
+                     const unsigned char *pk)                   // in parameter
 {
 
    /* verify returns 1 if signature is ok, 0 otherwise */
-   *mlen = smlen-(unsigned long long) sizeof(sig_t);
+   *mlen = smlen-(unsigned long long) sizeof(CROSS_sig_t);
    
    memcpy((unsigned char *) m, (const unsigned char *) sm, (size_t) *mlen);
-   int ok = CROSS_verify((const pubkey_t *const)
-                        pk,                     // in parameter
-                        (const char *const) m, (const uint64_t) *mlen,  // in parameter
-                        (const sig_t * const) (sm+*mlen));              // in parameter
+   int ok = CROSS_verify((const pk_t *const) pk,            // in parameter
+                        (const char *const) m,                  // in parameter
+                        (const uint64_t) *mlen,                 // in parameter
+                        (const CROSS_sig_t * const) (sm+*mlen));// in parameter
 
 
    return ok-1; // NIST convention: 0 == zero errors, -1 == error condition

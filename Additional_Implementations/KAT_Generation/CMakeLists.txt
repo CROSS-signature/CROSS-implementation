@@ -6,12 +6,13 @@ set(CMAKE_C_STANDARD 11)
 set(CC gcc)
 # set(CC clang)
 set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wall -pedantic -Wuninitialized -march=native -O3 -g3")
-
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${SANITIZE}")
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${SANITIZE} ${TEST_FLAGS}")
 message("Compilation flags:" ${CMAKE_C_FLAGS})
 
 # default compilation picks reference codebase
-set(REFERENCE 1)
+if (NOT DEFINED REFERENCE)
+    set(REFERENCE 1)
+endif()
 
 #generate by default KATs with standalone keccak library
 set(STANDALONE_KECCAK 1)
@@ -25,19 +26,33 @@ if(REFERENCE EQUAL 1)
 message("Compiling portable reference code")
 set(BASE_DIR ${REFERENCE_CODE_DIR})
 set(SPEC_HEADERS
+        ${BASE_DIR}/include/sha3.h
+        ${BASE_DIR}/include/csprng_hash.h
         ${BASE_DIR}/include/restr_arith.h
-        ${BASE_DIR}/include/fq_arith.h )
+        ${BASE_DIR}/include/fp_arith.h )
 set(SPEC_SOURCES
+        ${BASE_DIR}/lib/merkle.c
+        ${BASE_DIR}/lib/seedtree.c
         ${BASE_DIR}/lib/CROSS.c
 )
 else()
 message("Compiling optimized AVX2 code")
 set(BASE_DIR ${OPTIMIZED_CODE_DIR})
 set(SPEC_HEADERS
+        ${BASE_DIR}/include/align.h
+        ${BASE_DIR}/include/fips202x4.h
+        ${BASE_DIR}/include/KeccakP-1600-times4-SnP.h
+        ${BASE_DIR}/include/SIMD256-config.h
+        ${BASE_DIR}/include/sha3.h
+        ${BASE_DIR}/include/csprng_hash.h
         ${BASE_DIR}/include/architecture_detect.h
         ${BASE_DIR}/include/restr_arith.h
-        ${BASE_DIR}/include/fq_arith.h )
+        ${BASE_DIR}/include/fp_arith.h )
 set(SPEC_SOURCES
+        ${BASE_DIR}/lib/fips202x4.c
+        ${BASE_DIR}/lib/KeccakP-1600-times4-SIMD256.c
+        ${BASE_DIR}/lib/merkle.c
+        ${BASE_DIR}/lib/seedtree.c
         ${BASE_DIR}/lib/CROSS.c
 )
 endif()
@@ -47,15 +62,12 @@ set(HEADERS
     ${SPEC_HEADERS}
     ${COMMON_DIR}/include/api.h
     ${COMMON_DIR}/include/CROSS.h
-    ${COMMON_DIR}/include/csprng_hash.h
     ${COMMON_DIR}/include/pack_unpack.h
     ${COMMON_DIR}/include/fips202.h
     ${COMMON_DIR}/include/keccakf1600.h
     ${COMMON_DIR}/include/parameters.h
     ${COMMON_DIR}/include/seedtree.h
-    ${COMMON_DIR}/include/sha3.h
     ${COMMON_DIR}/include/merkle_tree.h
-    ${COMMON_DIR}/include/merkle.h
 )
 
 if(STANDALONE_KECCAK)
@@ -78,8 +90,6 @@ set(SOURCES
     ${COMMON_DIR}/lib/pack_unpack.c
     ${COMMON_DIR}/lib/keccakf1600.c
     ${COMMON_DIR}/lib/fips202.c
-    ${COMMON_DIR}/lib/seedtree.c
-    ${COMMON_DIR}/lib/merkle.c
     ${COMMON_DIR}/lib/sign.c
 )
 

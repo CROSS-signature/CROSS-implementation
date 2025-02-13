@@ -2,11 +2,17 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 1.1 (March 2023)
+ * @version 2.0 (February 2025)
  *
- * @author Alessandro Barenghi <alessandro.barenghi@polimi.it>
- * @author Gerardo Pelosi <gerardo.pelosi@polimi.it>
- *
+ * Authors listed in alphabetical order:
+ * 
+ * @author: Alessandro Barenghi <alessandro.barenghi@polimi.it>
+ * @author: Marco Gianvecchio <marco.gianvecchio@mail.polimi.it>
+ * @author: Patrick Karl <patrick.karl@tum.de>
+ * @author: Gerardo Pelosi <gerardo.pelosi@polimi.it>
+ * @author: Jonas Schupp <jonas.schupp@tum.de>
+ * 
+ * 
  * This code is hereby placed in the public domain.
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHORS ''AS IS'' AND ANY EXPRESS
@@ -22,7 +28,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  **/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,7 +38,7 @@
 #include "csprng_hash.h"
 
 
-#define NUM_TESTS 1000
+#define NUM_TESTS 10000
 
 void microbench(){
     welford_t timer;
@@ -52,21 +57,21 @@ void microbench(){
 
 void info(){
     fprintf(stderr,"CROSS benchmarking utility\n");
-    fprintf(stderr,"Code parameters: n= %d, k= %d, q=%d\n", N,K,Q);
+    fprintf(stderr,"Code parameters: n= %d, k= %d, p=%d\n", N,K,P);
     fprintf(stderr,"restriction size: z=%d\n",Z);
     fprintf(stderr,"Fixed weight challenge vector: %d rounds, weight %d \n",T,W);
-    fprintf(stderr,"Private key: %luB\n", sizeof(prikey_t));
-    fprintf(stderr,"Public key %luB\n", sizeof(pubkey_t));
-    fprintf(stderr,"Signature: %luB\n", sizeof(sig_t));
+    fprintf(stderr,"Private key: %luB\n", sizeof(sk_t));
+    fprintf(stderr,"Public key %luB\n", sizeof(pk_t));
+    fprintf(stderr,"Signature: %luB\n", sizeof(CROSS_sig_t));
 
 }
 
 void CROSS_sign_verify_speed(int print_tex){
     fprintf(stderr,"Computing number of clock cycles as the average of %d runs\n", NUM_TESTS);
     uint64_t cycles;
-    pubkey_t pk;
-    prikey_t sk;
-    sig_t signature;
+    pk_t pk;
+    sk_t sk;
+    CROSS_sig_t signature;
     char message[32] = "Signme!!Signme!!Signme!!Signme!";
 
     welford_t timer_KG,timer_Sig,timer_Ver;
@@ -142,9 +147,9 @@ void CROSS_sign_verify_speed(int print_tex){
 #elif defined(SPEED)
       printf("Speed & ");
 #endif
-      printf(" %lu &", sizeof(prikey_t));
-      printf(" %lu &", sizeof(pubkey_t));
-      printf(" %lu ", sizeof(sig_t));
+      printf(" %lu &", sizeof(sk_t));
+      printf(" %lu &", sizeof(pk_t));
+      printf(" %lu ", sizeof(CROSS_sig_t));
       printf(" \\\\\n");
     } else {
         info();
@@ -166,8 +171,8 @@ void CROSS_sign_verify_speed(int print_tex){
 
 
 int main(int argc, char* argv[]){
-    initialize_csprng(&platform_csprng_state,
-                      (const unsigned char *)"0123456789012345",16);
+    csprng_initialize(&platform_csprng_state,
+                      (const unsigned char *)"0123456789012345",16,0);
     fprintf(stderr,"CROSS reference implementation benchmarking tool\n");
     if ( (argc>1) &&
          (argv[1][0] == '-' ) &&

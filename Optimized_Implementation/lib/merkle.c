@@ -42,7 +42,7 @@
 #define NOT_TO_PUBLISH 0
 
 void tree_root(uint8_t root[HASH_DIGEST_LENGTH],
-                              uint8_t leaves[T][HASH_DIGEST_LENGTH]){
+               uint8_t leaves[T][HASH_DIGEST_LENGTH]){
 
    int remainders[4] = {0};
    if(T%4 > 0){ remainders[0] = 1; } 
@@ -53,11 +53,11 @@ void tree_root(uint8_t root[HASH_DIGEST_LENGTH],
 
    int offset = 0;
    for (int i = 0; i < 4; i++){
-       hash(&hash_input[i*HASH_DIGEST_LENGTH],leaves[(T/4)*i+offset],(T/4+remainders[i])*HASH_DIGEST_LENGTH, HASH_DOMAIN_SEP_CONST);
+       hash(&hash_input[i*HASH_DIGEST_LENGTH], leaves[(T/4)*i+offset], (T/4+remainders[i])*HASH_DIGEST_LENGTH, HASH_DOMAIN_SEP_CONST);
        offset += remainders[i];  
    }
 
-   hash(root,hash_input,sizeof(hash_input), HASH_DOMAIN_SEP_CONST);
+   hash(root,hash_input,sizeof(hash_input),HASH_DOMAIN_SEP_CONST);
 }
 
 uint16_t tree_proof(uint8_t mtp[W*HASH_DIGEST_LENGTH],
@@ -76,9 +76,9 @@ uint16_t tree_proof(uint8_t mtp[W*HASH_DIGEST_LENGTH],
 }
 
 uint8_t recompute_root(uint8_t root[HASH_DIGEST_LENGTH],
-                       uint8_t recomputed_leaves[T][HASH_DIGEST_LENGTH],
-                       const uint8_t mtp[W*HASH_DIGEST_LENGTH],
-                       const uint8_t leaves_to_reveal[T]){
+                                uint8_t recomputed_leaves[T][HASH_DIGEST_LENGTH],
+                                const uint8_t mtp[W*HASH_DIGEST_LENGTH],
+                                const uint8_t leaves_to_reveal[T]){
     uint16_t published = 0;
     for(int i=0; i<T; i++){
        if(leaves_to_reveal[i] == TO_PUBLISH){
@@ -142,8 +142,8 @@ void label_leaves(unsigned char flag_tree[NUM_NODES_MERKLE_TREE],
 
 /*****************************************************************************/
 void tree_root(uint8_t root[HASH_DIGEST_LENGTH],
-                                unsigned char tree[NUM_NODES_MERKLE_TREE *HASH_DIGEST_LENGTH],
-                                unsigned char leaves[T][HASH_DIGEST_LENGTH])
+               unsigned char tree[NUM_NODES_MERKLE_TREE *HASH_DIGEST_LENGTH],
+               unsigned char leaves[T][HASH_DIGEST_LENGTH])
 {
     /* off contains the offsets required to move between two layers in order
      * to compensate for the truncation.
@@ -157,16 +157,41 @@ void tree_root(uint8_t root[HASH_DIGEST_LENGTH],
     /* Place the commitments on the (unbalanced-) Merkle tree using helper arrays for indexing */
     place_cmt_on_leaves(tree, leaves);
 
+    /* Enqueue the calls to hash */
+    int to_hash = 0;
+    unsigned char* in_pos_queue[4] = {0};
+    int out_pos_queue[4] = {0};
+
     /* Start hashing the nodes from right to left, starting always with
      * the left-child node */
     unsigned int start_node = leaves_start_indices[0];
     for (int level=LOG2(T); level>0; level--) {
         for (int i=npl[level]-2; i>=0; i-=2) {
+            to_hash++;
             uint16_t current_node = start_node + i;
             uint16_t parent_node = PARENT(current_node) + (off[level-1] >> 1);
-
-            // Fetch both children
-            hash(tree + parent_node*HASH_DIGEST_LENGTH,tree+current_node*HASH_DIGEST_LENGTH,2*HASH_DIGEST_LENGTH, HASH_DOMAIN_SEP_CONST);
+            /* Save the position of the hash outputs and copy input nodes into array */
+            in_pos_queue[to_hash-1] = tree+current_node*HASH_DIGEST_LENGTH;
+            out_pos_queue[to_hash-1] = parent_node*HASH_DIGEST_LENGTH;            
+            /* Hash in batches of 4 (or less when changing tree level) */
+            if(to_hash == 4 || i == 0) {
+                hash_par(
+                    to_hash,
+                    tree + out_pos_queue[0],
+                    tree + out_pos_queue[1],
+                    tree + out_pos_queue[2],
+                    tree + out_pos_queue[3],
+                    in_pos_queue[0],
+                    in_pos_queue[1],
+                    in_pos_queue[2],
+                    in_pos_queue[3],
+                    2*HASH_DIGEST_LENGTH,
+                    HASH_DOMAIN_SEP_CONST,
+                    HASH_DOMAIN_SEP_CONST,
+                    HASH_DOMAIN_SEP_CONST,
+                    HASH_DOMAIN_SEP_CONST);
+                to_hash = 0;
+            }
         }
         start_node -= npl[level-1];
     }
@@ -220,9 +245,8 @@ uint8_t recompute_root(uint8_t root[HASH_DIGEST_LENGTH],
                        const uint8_t mtp[HASH_DIGEST_LENGTH*TREE_NODES_TO_STORE],
                        const uint8_t leaves_to_reveal[T])
 {
-    uint8_t tree[NUM_NODES_MERKLE_TREE * HASH_DIGEST_LENGTH];
-    uint8_t flag_tree[NUM_NODES_MERKLE_TREE] = {NOT_COMPUTED};
-    uint8_t hash_input[2*HASH_DIGEST_LENGTH];
+    unsigned char tree[NUM_NODES_MERKLE_TREE * HASH_DIGEST_LENGTH];
+    unsigned char flag_tree[NUM_NODES_MERKLE_TREE] = {NOT_COMPUTED};
 
     place_cmt_on_leaves(tree, recomputed_leaves);
     label_leaves(flag_tree, leaves_to_reveal);
@@ -231,6 +255,11 @@ uint8_t recompute_root(uint8_t root[HASH_DIGEST_LENGTH],
     const uint16_t npl[LOG2(T)+1] = TREE_NODES_PER_LEVEL;
     const uint16_t leaves_start_indices[TREE_SUBROOTS] = TREE_LEAVES_START_INDICES;
 
+    /* Enqueue the calls to hash */
+    int to_hash = 0;
+    int in_pos_queue[4] = {0};
+    int out_pos_queue[4] = {0};
+
     unsigned int published = 0;
     unsigned int start_node = leaves_start_indices[0];
     for (int level=LOG2(T); level>0; level--) {
@@ -238,30 +267,48 @@ uint8_t recompute_root(uint8_t root[HASH_DIGEST_LENGTH],
             uint16_t current_node = start_node + i;
             uint16_t parent_node = PARENT(current_node) + (off[level-1] >> 1);
 
-            /* Both siblings are unused */
-            if (flag_tree[current_node] == NOT_COMPUTED && flag_tree[SIBLING(current_node)] == NOT_COMPUTED) {
-                continue;
+            uint8_t are_both_siblings_unused = flag_tree[current_node] == NOT_COMPUTED && flag_tree[SIBLING(current_node)] == NOT_COMPUTED;
+            if (!are_both_siblings_unused) {
+
+                /* At least one of the siblings is valid: there is a hash to compute */
+                to_hash++;
+                in_pos_queue[to_hash-1] = current_node*HASH_DIGEST_LENGTH;
+                out_pos_queue[to_hash-1] = parent_node*HASH_DIGEST_LENGTH;
+
+                /* If the left sibling was not computed take it from the merkle proof */
+                if (!(flag_tree[current_node] == COMPUTED)) {
+                    memcpy(tree + current_node*HASH_DIGEST_LENGTH, mtp+published*HASH_DIGEST_LENGTH, HASH_DIGEST_LENGTH);
+                    published++;
+                }
+
+                /* If the right sibling was not computed take it from the merkle proof */
+                if (!(flag_tree[SIBLING(current_node)] == COMPUTED)) {
+                    memcpy(tree + current_node*HASH_DIGEST_LENGTH + HASH_DIGEST_LENGTH, mtp + published*HASH_DIGEST_LENGTH, HASH_DIGEST_LENGTH);
+                    published++;
+                }
+
+                flag_tree[parent_node] = COMPUTED;
             }
 
-            /* Process left sibling from the tree if valid, otherwise take it from the merkle proof */
-            if (flag_tree[current_node] == COMPUTED) {
-                memcpy(hash_input, tree + current_node*HASH_DIGEST_LENGTH, HASH_DIGEST_LENGTH);
-            } else {
-                memcpy(hash_input, mtp + published*HASH_DIGEST_LENGTH, HASH_DIGEST_LENGTH);
-                published++;
+            /* Hash in batches of 4 (or less when changing tree level) */
+            if(to_hash == 4 || i == 0) {
+                hash_par(
+                    to_hash,
+                    tree + out_pos_queue[0],
+                    tree + out_pos_queue[1],
+                    tree + out_pos_queue[2],
+                    tree + out_pos_queue[3],
+                    tree + in_pos_queue[0],
+                    tree + in_pos_queue[1],
+                    tree + in_pos_queue[2],
+                    tree + in_pos_queue[3],
+                    2*HASH_DIGEST_LENGTH,
+                    HASH_DOMAIN_SEP_CONST,
+                    HASH_DOMAIN_SEP_CONST,
+                    HASH_DOMAIN_SEP_CONST,
+                    HASH_DOMAIN_SEP_CONST);
+                to_hash = 0;
             }
-
-            /* Process right sibling from the tree if valid, otherwise take it from the merkle proof */
-            if (flag_tree[SIBLING(current_node)] == COMPUTED) {
-                memcpy(hash_input + HASH_DIGEST_LENGTH, tree + SIBLING(current_node)*HASH_DIGEST_LENGTH, HASH_DIGEST_LENGTH);
-            } else {
-                memcpy(hash_input + HASH_DIGEST_LENGTH, mtp + published*HASH_DIGEST_LENGTH, HASH_DIGEST_LENGTH);
-                published++;
-            }
-
-            /* Hash it and store the digest at the parent node */
-            hash(tree + parent_node*HASH_DIGEST_LENGTH, hash_input, sizeof(hash_input), HASH_DOMAIN_SEP_CONST);
-            flag_tree[parent_node] = COMPUTED;
         }
         start_node -= npl[level-1];
     }
