@@ -106,7 +106,7 @@ foreach(category RANGE 1 5 2)
              # settings for benchmarking binary
              set(TARGET_BINARY_NAME CROSS_KATgen_cat_${category}_${RSDP_VARIANT}_${optimiz_target})
              add_executable(${TARGET_BINARY_NAME} ${HEADERS} ${SOURCES}
-                                ./lib/KAT_NIST_rng.c ./lib/PQCgenKAT_sign.c)
+                                ./lib/rng.c ./lib/PQCgenKAT_sign.c)
              target_include_directories(${TARGET_BINARY_NAME} PRIVATE
                                         ${BASE_DIR}/include
                                         ${COMMON_DIR}/include

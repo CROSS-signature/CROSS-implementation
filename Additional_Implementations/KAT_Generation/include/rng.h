@@ -38,10 +38,10 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-#define KAT_NIST_RNG_SUCCESS     ( 0)
-#define KAT_NIST_RNG_BAD_MAXLEN  (-1)
-#define KAT_NIST_RNG_BAD_OUTBUF  (-2)
-#define KAT_NIST_RNG_BAD_REQ_LEN (-3)
+#define RNG_SUCCESS     ( 0)
+#define RNG_BAD_MAXLEN  (-1)
+#define RNG_BAD_OUTBUF  (-2)
+#define RNG_BAD_REQ_LEN (-3)
 
 typedef struct {
     unsigned char   buffer[16];
@@ -49,36 +49,36 @@ typedef struct {
     unsigned long   length_remaining;
     unsigned char   key[32];
     unsigned char   ctr[16];
-} KAT_NIST_AES_XOF_struct;
+} AES_XOF_struct;
 
 typedef struct {
     unsigned char   Key[32];
     unsigned char   V[16];
     int             reseed_counter;
-} KAT_NIST_AES256_CTR_DRBG_struct;
+} AES256_CTR_DRBG_struct;
 
 
 void
-KAT_NIST_AES256_CTR_DRBG_Update(unsigned char *provided_data,
+AES256_CTR_DRBG_Update(unsigned char *provided_data,
                                 unsigned char *Key,
                                 unsigned char *V);
 
 int
-KAT_NIST_seedexpander_init(KAT_NIST_AES_XOF_struct *ctx,
+seedexpander_init(AES_XOF_struct *ctx,
                            unsigned char *seed,
                            unsigned char *diversifier,
                            unsigned long maxlen);
 
 int
-KAT_NIST_seedexpander(KAT_NIST_AES_XOF_struct *ctx, 
+seedexpander(AES_XOF_struct *ctx, 
                       unsigned char *x, unsigned long xlen);
 
 void
-KAT_NIST_randombytes_init(unsigned char *entropy_input,
+randombytes_init(unsigned char *entropy_input,
                           unsigned char *personalization_string,
                           int security_strength);
 
 int
-KAT_NIST_randombytes(unsigned char *x, unsigned long long xlen);
+randombytes(unsigned char *x, unsigned long long xlen);
 
 #endif /* kat_nist_rng_h */

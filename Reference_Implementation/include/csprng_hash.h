@@ -2,7 +2,7 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 2.0 (February 2025)
+ * @version 2.2 (July 2025)
  *
  * Authors listed in alphabetical order:
  * 
@@ -66,14 +66,8 @@ void csprng_randombytes(unsigned char * const x,
 
 /******************************************************************************/
 
-/* global csprng state employed to have deterministic randombytes for testing */
-extern CSPRNG_STATE_T platform_csprng_state;
-/* extracts xlen bytes from the global CSPRNG */
-static inline
 void randombytes(unsigned char * x,
-                 unsigned long long xlen) {
-   csprng_randombytes(x,xlen,&platform_csprng_state);
-}
+                 unsigned long long xlen);
 
 /************************* HASH functions ********************************/
 

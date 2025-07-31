@@ -31,12 +31,12 @@
 *******************************************************************************/
 
 
-#include "KAT_NIST_rng.h"
+#include "rng.h"
 
 
-KAT_NIST_AES256_CTR_DRBG_struct  DRBG_ctx;
+AES256_CTR_DRBG_struct  DRBG_ctx;
 
-void    KAT_NIST_AES256_ECB(unsigned char *key, 
+void    AES256_ECB(unsigned char *key, 
                             unsigned char *ctr, 
                             unsigned char *buffer);
 
@@ -47,12 +47,12 @@ void    KAT_NIST_AES256_ECB(unsigned char *key,
  diversifier    - an 8 byte diversifier
  maxlen         - maximum number of bytes (less than 2**32) generated under this seed and diversifier
  */
-int KAT_NIST_seedexpander_init(KAT_NIST_AES_XOF_struct *ctx,
+int seedexpander_init(AES_XOF_struct *ctx,
                            unsigned char *seed,
                            unsigned char *diversifier,
                            unsigned long maxlen) {
     if ( maxlen >= 0x100000000 )
-        return KAT_NIST_RNG_BAD_MAXLEN;
+        return RNG_BAD_MAXLEN;
     
     ctx->length_remaining = maxlen;
     
@@ -71,7 +71,7 @@ int KAT_NIST_seedexpander_init(KAT_NIST_AES_XOF_struct *ctx,
     ctx->buffer_pos = 16;
     memset(ctx->buffer, 0x00, 16);
     
-    return KAT_NIST_RNG_SUCCESS;
+    return RNG_SUCCESS;
 }
 
 /*
@@ -80,14 +80,14 @@ int KAT_NIST_seedexpander_init(KAT_NIST_AES_XOF_struct *ctx,
     x    - returns the XOF data
     xlen - number of bytes to return
  */
-int KAT_NIST_seedexpander(KAT_NIST_AES_XOF_struct *ctx, 
+int seedexpander(AES_XOF_struct *ctx, 
                       unsigned char *x, unsigned long xlen) {
     unsigned long   offset;
     
     if ( x == NULL )
-        return KAT_NIST_RNG_BAD_OUTBUF;
+        return RNG_BAD_OUTBUF;
     if ( xlen >= ctx->length_remaining )
-        return KAT_NIST_RNG_BAD_REQ_LEN;
+        return RNG_BAD_REQ_LEN;
     
     ctx->length_remaining -= xlen;
     
@@ -97,7 +97,7 @@ int KAT_NIST_seedexpander(KAT_NIST_AES_XOF_struct *ctx,
             memcpy(x+offset, ctx->buffer+ctx->buffer_pos, xlen);
             ctx->buffer_pos += xlen;
             
-            return KAT_NIST_RNG_SUCCESS;
+            return RNG_SUCCESS;
         }
         
         // take what's in the buffer
@@ -105,7 +105,7 @@ int KAT_NIST_seedexpander(KAT_NIST_AES_XOF_struct *ctx,
         xlen -= 16-ctx->buffer_pos;
         offset += 16-ctx->buffer_pos;
         
-        KAT_NIST_AES256_ECB(ctx->key, ctx->ctr, ctx->buffer);
+        AES256_ECB(ctx->key, ctx->ctr, ctx->buffer);
         ctx->buffer_pos = 0;
         
         //increment the counter
@@ -120,11 +120,11 @@ int KAT_NIST_seedexpander(KAT_NIST_AES_XOF_struct *ctx,
         
     }
     
-    return KAT_NIST_RNG_SUCCESS;
+    return RNG_SUCCESS;
 }
 
 
-void KAT_NIST_handleErrors(void) {
+void handleErrors(void) {
     ERR_print_errors_fp(stderr);
     abort();
 }
@@ -133,7 +133,7 @@ void KAT_NIST_handleErrors(void) {
 //    key - 256-bit AES key
 //    ctr - a 128-bit plaintext value
 //    buffer - a 128-bit ciphertext value
-void KAT_NIST_AES256_ECB(unsigned char *key, 
+void AES256_ECB(unsigned char *key, 
                     unsigned char *ctr, 
                     unsigned char *buffer) {
     EVP_CIPHER_CTX *ctx;
@@ -143,20 +143,20 @@ void KAT_NIST_AES256_ECB(unsigned char *key,
     //int ciphertext_len; // set but not used in the original file provided by NIST
     
     /* Create and initialise the context */
-    if(!(ctx = EVP_CIPHER_CTX_new())) KAT_NIST_handleErrors();
+    if(!(ctx = EVP_CIPHER_CTX_new())) handleErrors();
     
     if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ecb(), NULL, key, NULL))
-        KAT_NIST_handleErrors();
+        handleErrors();
     
     if(1 != EVP_EncryptUpdate(ctx, buffer, &len, ctr, 16))
-        KAT_NIST_handleErrors();
+        handleErrors();
     // ciphertext_len = len;
     
     /* Clean up */
     EVP_CIPHER_CTX_free(ctx);
 }
 
-void KAT_NIST_randombytes_init(unsigned char *entropy_input,
+void randombytes_init(unsigned char *entropy_input,
                           unsigned char *personalization_string,
                           int security_strength) {
     unsigned char   seed_material[48] = {0};
@@ -167,11 +167,11 @@ void KAT_NIST_randombytes_init(unsigned char *entropy_input,
             seed_material[i] ^= personalization_string[i];
     memset(DRBG_ctx.Key, 0x00, 32);
     memset(DRBG_ctx.V, 0x00, 16);
-    KAT_NIST_AES256_CTR_DRBG_Update(seed_material, DRBG_ctx.Key, DRBG_ctx.V);
+    AES256_CTR_DRBG_Update(seed_material, DRBG_ctx.Key, DRBG_ctx.V);
     DRBG_ctx.reseed_counter = 1;
 }
 
-int KAT_NIST_randombytes(unsigned char *x, unsigned long long xlen) {
+int randombytes(unsigned char *x, unsigned long long xlen) {
     unsigned char   block[16];
     int             i = 0;
     
@@ -185,7 +185,7 @@ int KAT_NIST_randombytes(unsigned char *x, unsigned long long xlen) {
                 break;
             }
         }
-        KAT_NIST_AES256_ECB(DRBG_ctx.Key, DRBG_ctx.V, block);
+        AES256_ECB(DRBG_ctx.Key, DRBG_ctx.V, block);
         if ( xlen > 15 ) {
             memcpy(x+i, block, 16);
             i += 16;
@@ -196,13 +196,13 @@ int KAT_NIST_randombytes(unsigned char *x, unsigned long long xlen) {
             xlen = 0;
         }
     }
-    KAT_NIST_AES256_CTR_DRBG_Update(NULL, DRBG_ctx.Key, DRBG_ctx.V);
+    AES256_CTR_DRBG_Update(NULL, DRBG_ctx.Key, DRBG_ctx.V);
     DRBG_ctx.reseed_counter++;
     
-    return KAT_NIST_RNG_SUCCESS;
+    return RNG_SUCCESS;
 }
 
-void KAT_NIST_AES256_CTR_DRBG_Update(unsigned char *provided_data,
+void AES256_CTR_DRBG_Update(unsigned char *provided_data,
                                 unsigned char *Key,
                                 unsigned char *V) {
     unsigned char   temp[48];
@@ -218,7 +218,7 @@ void KAT_NIST_AES256_CTR_DRBG_Update(unsigned char *provided_data,
             }
         }
         
-        KAT_NIST_AES256_ECB(Key, V, temp+16*i);
+        AES256_ECB(Key, V, temp+16*i);
     }
     if ( provided_data != NULL )
         for (int i=0; i<48; i++)

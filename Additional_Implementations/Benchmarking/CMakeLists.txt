@@ -108,7 +108,7 @@ foreach(category RANGE 1 5 2)
              endif()
              # settings for benchmarking binary
              set(TARGET_BINARY_NAME CROSS_benchmark_cat_${category}_${RSDP_VARIANT}_${optimiz_target})
-             add_executable(${TARGET_BINARY_NAME} ${HEADERS} ${SOURCES}
+             add_executable(${TARGET_BINARY_NAME} ${HEADERS} ${SOURCES} ./include/rng.h
                                 ./lib/CROSS_benchmark.c)
              target_include_directories(${TARGET_BINARY_NAME} PRIVATE
                                         ${BASE_DIR}/include
@@ -121,7 +121,7 @@ foreach(category RANGE 1 5 2)
 
              # settings for unit tests binary
              set(TARGET_BINARY_NAME CROSS_test_cat_${category}_${RSDP_VARIANT}_${optimiz_target})
-             add_executable(${TARGET_BINARY_NAME} ${HEADERS} ${SOURCES} ./include/arith_unit_tests.h
+             add_executable(${TARGET_BINARY_NAME} ${HEADERS} ${SOURCES} ./include/arith_unit_tests.h ./include/rng.h
                                 ./lib/CROSS_test.c)
              target_include_directories(${TARGET_BINARY_NAME} PRIVATE
                                         ${BASE_DIR}/include

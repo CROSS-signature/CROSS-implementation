@@ -2,7 +2,7 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 2.0 (February 2025)
+ * @version 2.2 (July 2025)
  *
  * Authors listed in alphabetical order:
  * 
@@ -37,6 +37,7 @@
 
 #define NUM_TEST_ITERATIONS 100
 #include "csprng_hash.h"
+#include "rng.h"
 #include "fp_arith.h"
 #include "arith_unit_tests.h"
 #include "CROSS.h"

@@ -2,7 +2,7 @@
  *
  * Reference ISO-C11 Implementation of CROSS.
  *
- * @version 2.0 (February 2025)
+ * @version 2.2 (July 2025)
  *
  * Authors listed in alphabetical order:
  * 
@@ -32,8 +32,6 @@
 #include <string.h>
 
 #include "csprng_hash.h"
-
-CSPRNG_STATE_T platform_csprng_state;
 
 #define  POSITION_MASK (( (uint16_t)1 << BITS_TO_REPRESENT(T-1))-1)
 
