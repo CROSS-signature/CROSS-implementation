@@ -80,6 +80,10 @@ int crypto_sign_open(unsigned char *m,                          // out parameter
                      const unsigned char *pk)                   // in parameter
 {
 
+   if (smlen < (size_t) sizeof(CROSS_sig_t)) {
+      return -1;
+   }
+
    /* verify returns 1 if signature is ok, 0 otherwise */
    *mlen = smlen-(unsigned long long) sizeof(CROSS_sig_t);
    
