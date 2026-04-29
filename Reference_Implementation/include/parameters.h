@@ -30,7 +30,13 @@
  **/
 
 #pragma once
+
+/* skip include directives when preprocessing assembly */
+#ifndef ASM_SKIP_INCLUDE
 #include <stdint.h>
+#endif
+
+#include "build_defs.h"
 
 /******************************************************************************/
 /*************************** Base Fields Parameters ***************************/
@@ -235,7 +241,7 @@
 #define ROUND_UP(amount, round_amt) ( ((amount+round_amt-1)/round_amt)*round_amt )
 
 #define IS_REPRESENTABLE_IN_D_BITS(D, N)                \
-  (((unsigned long) N>=(1UL << (D-1)) && (unsigned long) N<(1UL << D)) ? D : -1)
+  (( N>=(1L << (D-1)) && N<(1L << D)) ? D : -1)
 
 #define BITS_TO_REPRESENT(N)                            \
   (N == 0 ? 1 : (15                                     \
@@ -259,6 +265,8 @@
    )
 
 #define LOG2(L) ( (BITS_TO_REPRESENT(L) > BITS_TO_REPRESENT(L-1)) ? (BITS_TO_REPRESENT(L-1)) : (BITS_TO_REPRESENT(L)) )
+
+#define NUM_BITS_P (BITS_TO_REPRESENT(P))
 
 /***************** Derived parameters *****************************************/
 #define SEED_LENGTH_BYTES (SEC_MARGIN_LAMBDA/8)

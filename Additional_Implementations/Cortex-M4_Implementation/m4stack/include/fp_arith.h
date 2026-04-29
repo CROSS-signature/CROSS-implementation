@@ -34,16 +34,31 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "m4_defs.h"
 #include "csprng_hash.h"
 #include "parameters.h"
 #include "restr_arith.h"
+
+#if defined(TIME_OPT_SIMD)
+#if defined(M4_FALLBACK)
+#include "m4_fallback.h"
+#else
+#include <arm_acle.h>
+#endif
+#endif
 
 #if defined(RSDP)
 #define FPRED_SINGLE(x) (((x) & 0x7F) + ((x) >> 7))
 #define FPRED_DOUBLE(x) FPRED_SINGLE(FPRED_SINGLE(x))
 #define FPRED_OPPOSITE(x) ((x) ^ 0x7F)
 #define FP_DOUBLE_ZERO_NORM(x) (((x) + (((x) + 1) >> 7)) & 0x7F)
-#define RESTR_TO_VAL(x) ( (FP_ELEM) (RESTR_G_TABLE >> (8*(uint64_t)(x))) )
+/* Ad-hoc reduction for matrix multiplication, for ints in [0,P+K*P^2] */
+#define U32_REDUCE_FP(x) (((x) - (((uint64_t)(x) * 4227331) >> 29) * P))
+
+#if defined(TIME_OPT_TBL_LOOKUP)
+/* Precomputed powers (G^x mod P) */
+const FP_ELEM EXP_TABLE[Z+1] = {1, 2, 4, 8, 16, 32, 64, 1};
+#endif
 
 #elif defined(RSDPG)
 /* Reduction modulo P=509 as shown in:
@@ -54,11 +69,50 @@
 #define FPRED_OPPOSITE(x) (FPRED_SINGLE(P - (x)))
 /* no redundant zero notation in F_509 */
 #define FP_DOUBLE_ZERO_NORM(x) (x)
+/* Ad-hoc reduction for matrix multiplication, for ints in [0,(P-1)+K*(P-1)^2] */
+#define U32_REDUCE_FP(x) (((x) - (((uint64_t)(x) * 4219025) >> 31) * P))
 
-/* for i in [0,1,2,4,8,16,32,64] RESTR_G_GEN**i mod 509 yields
- * [1, 16, 256, 384, 355, 302, 93, 505]
- * the following is a precomputed-squares S&M, to be optimized into muxed
- * register stored tables */
+#if defined(TIME_OPT_TBL_LOOKUP)
+/* Precomputed powers (G^x mod P) */
+const FP_ELEM EXP_TABLE[Z+1] = {1, 16, 256, 24, 384, 36, 67, 54, 355, 81, 278, \
+    376, 417, 55, 371, 337, 302, 251, 453, 122, 425, 183, 383, 20, 320, 30,    \
+    480, 45, 211, 322, 62, 483, 93, 470, 394, 196, 82, 294, 123, 441, 439, 407,\
+    404, 356, 97, 25, 400, 292, 91, 438, 391, 148, 332, 222, 498, 333, 238,    \
+    245, 357, 113, 281, 424, 167, 127, 505, 445, 503, 413, 500, 365, 241, 293, \
+    107, 185, 415, 23, 368, 289, 43, 179, 319, 14, 224, 21, 336, 286, 504, 429,\
+    247, 389, 116, 329, 174, 239, 261, 104, 137, 156, 460, 234, 181, 351, 17,  \
+    272, 280, 408, 420, 103, 121, 409, 436, 359, 145, 284, 472, 426, 199, 130, \
+    44, 195, 66, 38, 99, 57, 403, 340, 350, 1};
+#endif
+
+#endif
+
+#if defined(TIME_OPT_TBL_LOOKUP)
+/* Precomputed exponentiation on platforms with constant-time SRAM access */
+static inline FP_ELEM RESTR_TO_VAL(FZ_ELEM x) {
+    static FP_ELEM exp_table[Z+1];
+    static char initialized = 0;
+    /* Copy the lookup table into SRAM */
+    if (!initialized) {
+        memcpy(exp_table, EXP_TABLE, sizeof(EXP_TABLE));
+        initialized = 1;
+    }
+    return exp_table[x];
+}
+
+#else
+#if defined(RSDP)
+
+static inline
+FP_ELEM RESTR_TO_VAL(FP_ELEM x){
+	uint32_t t;
+	t = (1 << x);
+	t += t >> 7;
+	t &= 0x7f;
+	return (FP_ELEM)t;
+}
+
+#elif defined(RSDPG)
 
 #define RESTR_G_GEN_1  ((FP_ELEM)RESTR_G_GEN)
 #define RESTR_G_GEN_2  ((FP_ELEM) 256)
@@ -67,9 +121,7 @@
 #define RESTR_G_GEN_16 ((FP_ELEM) 302)
 #define RESTR_G_GEN_32 ((FP_ELEM) 93)
 #define RESTR_G_GEN_64 ((FP_ELEM) 505)
-
 #define FP_ELEM_CMOV(BIT,TRUE_V,FALSE_V)  ( (((FP_ELEM)0 - (BIT)) & (TRUE_V)) | (~((FP_ELEM)0 - (BIT)) & (FALSE_V)) )
-
 /* log reduction, constant time unrolled S&M w/precomputed squares.
  * To be further optimized with muxed register-fitting tables */
 static inline
@@ -82,7 +134,6 @@ FP_ELEM RESTR_TO_VAL(FP_ELEM x){
     res3 = ( FP_ELEM_CMOV(((x >> 4) &1),RESTR_G_GEN_16,1)) *
            ( FP_ELEM_CMOV(((x >> 5) &1),RESTR_G_GEN_32,1)) ;
     res4 =   FP_ELEM_CMOV(((x >> 6) &1),RESTR_G_GEN_64,1);
-
     /* Two intermediate reductions necessary:
      *     RESTR_G_GEN_1*RESTR_G_GEN_2*RESTR_G_GEN_4*RESTR_G_GEN_8    < 2^32
      *     RESTR_G_GEN_16*RESTR_G_GEN_32*RESTR_G_GEN_64               < 2^32 */
@@ -90,7 +141,7 @@ FP_ELEM RESTR_TO_VAL(FP_ELEM x){
 }
 
 #endif
-
+#endif
 
 /* in-place normalization of redundant zero representation for syndromes*/
 static inline
@@ -114,39 +165,118 @@ void fp_dz_norm(FP_ELEM v[N]){
 static
 void restr_vec_by_fp_matrix(FP_ELEM res[N-K],
                             FZ_ELEM e[N],
-                            FP_ELEM V_tr[K][N-K]){
-    for (int i = K ;i < N; i++){
-       res[i-K] = RESTR_TO_VAL(e[i]);
+                            FP_ELEM_M4 V_tr[V_ROWS][V_COLS]){
+    FP_DOUBLEPREC res_dprec[N-K] = {0};
+    for(int i=0; i< N-K;i++) {
+        res_dprec[i]=RESTR_TO_VAL(e[K+i]);
     }
     for(int i = 0; i < K; i++){
        for(int j = 0; j < N-K; j++){
-           res[j] = FPRED_DOUBLE( (FP_DOUBLEPREC) res[j] +
+           res_dprec[j] += FPRED_SINGLE(
                                   (FP_DOUBLEPREC) RESTR_TO_VAL(e[i]) *
+#if defined(TIME_OPT_SIMD)
+                                  (FP_DOUBLEPREC) V_tr[j][i]);
+#else
                                   (FP_DOUBLEPREC) V_tr[i][j]);
+#endif
+           if(i == P-1) { res_dprec[j] = FPRED_SINGLE(res_dprec[j]); }
        }
+    }
+    /* Save result trimming to regular precision */
+    for(int i=0; i< N-K;i++) {
+        res[i] = FPRED_SINGLE(res_dprec[i]);
     }
 }
 
+#if defined(TIME_OPT_SIMD)
+#if !defined(M4_FALLBACK)
+extern uint32_t smlad_batch_V(const uint16_t *a, const uint16_t *b);
+#endif
+static inline 
+void fp_vec_by_fp_matrix(FP_ELEM res[N-K],
+                         FP_ELEM_M4 e[N],
+                         FP_ELEM_M4 V_tr[V_ROWS][V_COLS]){
+    /* res: convert to uint32, add last N-K elements of e */
+    uint32_t res_x[N - K];
+    for (int i = 0; i < N - K; i++){
+        res_x[i] = e[i + K];
+    }
+    for (int icol = 0; icol < N - K; icol++){
+        /* - load 10 elements from vector e
+         * - load 10 elements from matrix V_tr
+         * - multiply them in pairs
+         * - accumulate the result
+         * repeat until less than 10 elements are left */
+        res_x[icol] += smlad_batch_V(&e[0], &V_tr[icol][0]);
+        /* multiply and accumplate the last few elements (<10) in pairs */
+        for (int irow = SMLAD_BATCH_SIZE_V; irow < K-(K%2); irow += 2){
+            res_x[icol] = __smlad(*(uint32_t *)(e+irow), *(uint32_t *)(V_tr[icol]+irow), res_x[icol]);
+        }
+        /* when K is odd multiply the very last element on its own */
+        if(K%2 == 1){
+            res_x[icol] += e[K-1] * V_tr[icol][K-1];
+        }
+        /* reduce the result mod P and store it back */
+        res_x[icol] = U32_REDUCE_FP(res_x[icol]);
+        res[icol] = res_x[icol];
+    }
+}
+#else /* fallback to plain C */
+#if defined(RSDP)
 static
 void fp_vec_by_fp_matrix(FP_ELEM res[N-K],
-                         FP_ELEM e[N],
-                         FP_ELEM V_tr[K][N-K]){
-    memcpy(res,e+K,(N-K)*sizeof(FP_ELEM));
+                         FP_ELEM_M4 e[N],
+                         FP_ELEM_M4 V_tr[V_ROWS][V_COLS]){
+    FP_DOUBLEPREC res_dprec[N-K] = {0};
+    for(int i=0; i< N-K;i++) {
+        res_dprec[i]=e[K+i];
+    }
     for(int i = 0; i < K; i++){
        for(int j = 0; j < N-K; j++){
-           res[j] = FPRED_DOUBLE( (FP_DOUBLEPREC) res[j] +
+           res_dprec[j] += FPRED_SINGLE(
+                                  (FP_DOUBLEPREC) e[i] *
+                                  (FP_DOUBLEPREC) V_tr[i][j]);
+           /* Lazy reduction after 127 additions */
+           if(i == P-1) { res_dprec[j] = FPRED_SINGLE(res_dprec[j]); }
+       }
+    }
+    /* Save result trimming to regular precision */
+    for(int i=0; i< N-K;i++) {
+        res[i] = FPRED_SINGLE(res_dprec[i]);
+    }
+}
+#endif /* defined(RSDP) */
+#if defined(RSDPG)
+static
+void fp_vec_by_fp_matrix(FP_ELEM res[N-K],
+                         FP_ELEM_M4 e[N],
+                         FP_ELEM_M4 V_tr[V_ROWS][V_COLS]){
+    FP_DOUBLEPREC res_dprec[N-K] = {0};
+    for(int i=0; i< N-K;i++) {
+        res_dprec[i]=e[K+i];
+    }
+    for(int i = 0; i < K; i++){
+       for(int j = 0; j < N-K; j++){
+           res_dprec[j] += FPRED_SINGLE(
                                   (FP_DOUBLEPREC) e[i] *
                                   (FP_DOUBLEPREC) V_tr[i][j]);
        }
     }
+    /* Save result trimming to regular precision. A single reduction is ok, as
+     * K*(P-1) < 2^32-1 */
+    for(int i=0; i< N-K;i++) {
+        res[i] = FPRED_SINGLE(res_dprec[i]);
+    }
 }
+#endif /* defined(RSDPG) */
+#endif /* defined(TIME_OPT_SIMD) */
 
 static inline
-void fp_vec_by_fp_vec_pointwise(FP_ELEM res[N],
+void fp_vec_by_fp_vec_pointwise(FP_ELEM_M4 res[N],
                                 const FP_ELEM in1[N],
                                 const FP_ELEM in2[N]){
     for(int i = 0; i < N; i++){
-        res[i] = FPRED_DOUBLE( (FP_DOUBLEPREC) in1[i] *
+        res[i] = FPRED_SINGLE( (FP_DOUBLEPREC) in1[i] *
                                (FP_DOUBLEPREC) in2[i] );
     }
 }
@@ -156,12 +286,13 @@ void restr_by_fp_vec_pointwise(FP_ELEM res[N],
                                 const FZ_ELEM in1[N],
                                 const FP_ELEM in2[N]){
     for(int i = 0; i < N; i++){
-        res[i] = FPRED_DOUBLE( (FP_DOUBLEPREC) RESTR_TO_VAL(in1[i]) *
+        res[i] = FPRED_SINGLE( (FP_DOUBLEPREC) RESTR_TO_VAL(in1[i]) *
                                (FP_DOUBLEPREC) in2[i]);
     }
 }
 
 /* e*chall_1 + u_prime*/
+#if defined(RSDP)
 static inline
 void fp_vec_by_restr_vec_scaled(FP_ELEM res[N],
                                 const FZ_ELEM e[N],
@@ -172,6 +303,20 @@ void fp_vec_by_restr_vec_scaled(FP_ELEM res[N],
                                (FP_DOUBLEPREC) RESTR_TO_VAL(e[i]) * (FP_DOUBLEPREC) chall_1) ;
     }
 }
+#endif /* defined(RSDP) */
+
+#if defined(RSDPG)
+static inline
+void fp_vec_by_restr_vec_scaled(FP_ELEM res[N],
+                                const FZ_ELEM e[N],
+                                const FP_ELEM chall_1,
+                                const FP_ELEM u_prime[N]){
+    for(int i = 0; i < N; i++){
+        res[i] = FPRED_SINGLE( (FP_DOUBLEPREC) u_prime[i] +
+                               (FP_DOUBLEPREC) RESTR_TO_VAL(e[i]) * (FP_DOUBLEPREC) chall_1) ;
+    }
+}
+#endif /* defined(RSDPG) */
 
 
 static inline
@@ -180,7 +325,7 @@ void fp_synd_minus_fp_vec_scaled(FP_ELEM res[N-K],
                                  const FP_ELEM chall_1,
                                  const FP_ELEM s[N-K]){
     for(int j = 0; j < N-K; j++){
-        FP_ELEM tmp = FPRED_DOUBLE( (FP_DOUBLEPREC) s[j] * (FP_DOUBLEPREC) chall_1);
+        FP_ELEM tmp = FPRED_SINGLE( (FP_DOUBLEPREC) s[j] * (FP_DOUBLEPREC) chall_1);
         tmp = FP_DOUBLE_ZERO_NORM(tmp);
         res[j] = FPRED_SINGLE( (FP_DOUBLEPREC) synd[j] + FPRED_OPPOSITE(tmp) );
     }

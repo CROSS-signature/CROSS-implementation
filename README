@@ -36,7 +36,8 @@ This directory provides Cmake based building facilites to generate
 executable files either performing a benchmark of CROSS, performing unit testing
 of the underlying arithmetics or generating the Known Answer Test files in the 
 KAT folder. Furthermore, we provide the Sage scripts employed to estimate
-the cost of attacking the instances of RSDP and RSDPG employed in CROSS.
+the cost of attacking the instances of RSDP and RSDPG employed in CROSS. It
+furthermore contains an implementation optimized for Cortex-M4 devices.
 
 To build the benchmarking binaries, we advise to build-off tree following this
 procedure:
