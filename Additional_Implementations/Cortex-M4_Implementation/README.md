@@ -29,7 +29,7 @@ In case one just wants to generate the implementations used throughout this pape
 ./run.sh
 ```
 
-# Structure of this artifact
+# Structure of this folder
 * `m4ref`: Contains files adapted from the original cross reference for compatibility with the pqm4 framework (inclusion of randombytes as dependency)
 * `m4speed`: Contains the source files specific for the runtime optimizations on Cortex-M4
 * `m4stack`: Contains the source files specific for the stack optimizations on Cortex-M4
@@ -58,5 +58,5 @@ This implementation, including possible future updates, can also be found at the
 The configured implementations for pqm4 as used for this work are also available at [pqm4](https://github.com/mupq/pqm4), possibly as open merge request from [here](https://github.com/joschupp/pqm4).
 
 ## References
-[1]: [pqm4](https://github.com/mupq/pqm4)
-[2]: [eprint version of the paper](https://eprint.iacr.org/2025/1928)
+\[1\]: [pqm4](https://github.com/mupq/pqm4)
+\[2\]: [eprint version of the paper](https://eprint.iacr.org/2025/1928)
