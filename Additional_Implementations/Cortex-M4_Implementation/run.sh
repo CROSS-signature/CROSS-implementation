@@ -11,14 +11,14 @@ PLATFORM=nucleo-l4r5zi
 # The serial interface used by pqm4 for the benchmarks likely needs to be adapted to your platform,
 # on Ubuntu/Debian it is usually /dev/ttyACM* for the nucleo-l4r5zi 
 # and some /dev/ttyUSB* for the external adapter required for the stm32f4discovery
-SERIAL_PATH=/dev/ttyACM1
+: ${SERIAL_PATH:=/dev/ttyACM1}
 
 CROSS_VARIANTS="rsdp rsdpg"
 CROSS_CATEGORY="1 3 5"
 CROSS_OPT="fast balanced small"
 CROSS_IMPLS="m4stack m4speed m4opt"
 
-cd Cortex-M4_Implementation
+
 mkdir -p build
 cd build
 cmake ..
